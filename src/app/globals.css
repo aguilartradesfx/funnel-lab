@@ -1,26 +1,265 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ─── Variables de tema ───────────────────────────────────────────────────── */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas-bg: #191919;
+  --color-surface-0: #1c1c1c;
+  --color-surface-1: #202020;
+  --color-surface-2: #252525;
+  --color-surface-3: #2c2c2c;
+  --color-border: #2e2e2e;
+  --color-border-subtle: #1e1e1e;
+
+  --color-text-primary: #e8e8e8;
+  --color-text-secondary: #888888;
+  --color-text-muted: #444444;
+
+  /* Tráfico */
+  --color-traffic-bg: #111a20;
+  --color-traffic-border: #1e3040;
+  --color-traffic-text: #5a7a8a;
+
+  /* Páginas */
+  --color-pages-bg: #121a12;
+  --color-pages-border: #1f301f;
+  --color-pages-text: #4d7050;
+
+  /* Ventas */
+  --color-sales-bg: #1a1410;
+  --color-sales-border: #302218;
+  --color-sales-text: #c27a30;
+
+  /* Follow-up */
+  --color-followup-bg: #161616;
+  --color-followup-border: #282828;
+  --color-followup-text: #686868;
+
+  /* Utilidades */
+  --color-utilities-bg: #111111;
+  --color-utilities-border: #222222;
+  --color-utilities-text: #555555;
+
+  /* Paths de conexión */
+  --color-path-yes: #22c55e;
+  --color-path-no: #ef4444;
+  --color-path-default: #3a3a3a;
+
+  /* Accent naranja */
+  --color-accent: #f97316;
+  --color-accent-hover: #ea580c;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #191919;
+  color: #e8e8e8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#__next,
+main {
+  height: 100%;
+}
+
+/* ─── Scrollbar personalizada ─────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f0f0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}
+
+/* ─── React Flow overrides ────────────────────────────────────────────────── */
+
+.react-flow__background {
+  background-color: #191919;
+}
+
+.react-flow__minimap {
+  background-color: #1e1e1e !important;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(249, 115, 22, 0.12);
+}
+
+.react-flow__controls {
+  background-color: #1c1c1c;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  overflow: hidden;
+  gap: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.react-flow__controls-button {
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid #2e2e2e;
+  fill: #888888;
+  color: #888888;
+  width: 32px;
+  height: 32px;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #242424;
+  fill: #e8e8e8;
+  color: #e8e8e8;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__connection-line {
+  stroke: #f97316;
+  stroke-width: 2;
+}
+
+.react-flow__handle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 5px solid #191919;
+  transition: box-shadow 0.15s ease;
+}
+
+/* Sin efecto hover en el punto de conexión — se mantiene el translate de posición exacto */
+.react-flow__handle-right:hover {
+  transform: translate(50%, -50%) !important;
+  transition: none !important;
+}
+.react-flow__handle-left:hover {
+  transform: translate(-50%, -50%) !important;
+  transition: none !important;
+}
+
+.react-flow__handle-connecting {
+  transform: scale(1.15);
+}
+
+.react-flow__handle-valid {
+  background: #22c55e !important;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+/* ─── Selección de nodos ──────────────────────────────────────────────────── */
+
+.react-flow__node.selected > div {
+  box-shadow: none !important;
+}
+
+/* ─── Panel de control (MiniMap) ──────────────────────────────────────────── */
+
+.react-flow__panel {
+  margin: 12px;
+}
+
+/* ─── Tooltip styles ──────────────────────────────────────────────────────── */
+
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* ─── Input / select dark style ──────────────────────────────────────────── */
+
+.funnel-input {
+  background-color: #141414;
+  border: 1px solid #2e2e2e;
+  color: #e8e8e8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+
+.funnel-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.funnel-input:hover {
+  border-color: #3a3a3a;
+}
+
+/* ─── Animaciones ────────────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInBottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(249, 115, 22, 0.25); }
+  50%       { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); }
+}
+
+.animate-fade-in     { animation: fadeIn 0.2s ease forwards; }
+.animate-slide-right { animation: slideInRight 0.25s ease forwards; }
+.animate-slide-bottom{ animation: slideInBottom 0.25s ease forwards; }
+.animate-pulse-glow  { animation: pulse-glow 2s ease infinite; }
+
+/* ─── Animación de nodo simulando ────────────────────────────────────────── */
+
+@keyframes nodeSimPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.1), 0 0 0px rgba(249,115,22,0); }
+  40%  { box-shadow: 0 0 0 3px rgba(249,115,22,0.55), 0 0 22px rgba(249,115,22,0.3); }
+  60%  { box-shadow: 0 0 0 3px rgba(249,115,22,0.55), 0 0 22px rgba(249,115,22,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.1), 0 0 0px rgba(249,115,22,0); }
+}
+
+.node-simulating {
+  animation: nodeSimPulse 0.75s ease infinite;
+}
+
+/* ─── Nodo seleccionado glow ─────────────────────────────────────────────── */
+
+.node-selected-glow {
+  box-shadow: 0 0 0 1px rgba(249,115,22,0.25), 0 0 18px rgba(249,115,22,0.12), 0 4px 16px rgba(0,0,0,0.5);
 }
