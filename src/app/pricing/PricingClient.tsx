@@ -268,7 +268,7 @@ export default function PricingClient({ userId, currentPlan, hasSubscription }: 
               <span className="text-2xl font-bold text-white">250</span>
               <span className="text-slate-500 text-sm ml-1">créditos</span>
             </div>
-            <span className="text-lg font-bold text-orange-400">$9.99</span>
+            <span className="text-lg font-bold text-orange-400">$19.99</span>
           </div>
           <button
             onClick={handleBuyCreditPack}

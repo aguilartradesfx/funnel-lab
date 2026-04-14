@@ -261,7 +261,7 @@ export default function SettingsClient({ user, plan, creditLog }: Props) {
               </div>
               <div className="flex items-center gap-2">
                 {packLoading ? <Loader2 size={14} className="animate-spin text-slate-400" /> : null}
-                <span className="text-sm font-bold text-orange-400">$9.99</span>
+                <span className="text-sm font-bold text-orange-400">$19.99</span>
               </div>
             </button>
           </div>

@@ -870,7 +870,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
             <p className="text-xs text-[#666] mb-3">250 créditos · Compra única · No vencen</p>
             <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-[#0f0f0f] border border-[#1e1e1e]">
               <span className="text-sm text-[#ccc]">250 créditos IA</span>
-              <span className="text-sm font-bold text-white">$9.99</span>
+              <span className="text-sm font-bold text-white">$19.99</span>
             </div>
           </div>
         </FadeIn>
