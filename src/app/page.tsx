@@ -7,7 +7,13 @@ export const metadata = {
 }
 
 export default async function HomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return <LandingPage isAuthenticated={!!user} />
+  let isAuthenticated = false
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    isAuthenticated = !!user
+  } catch {
+    // Si falla el cliente de Supabase, mostramos la landing sin auth
+  }
+  return <LandingPage isAuthenticated={isAuthenticated} />
 }

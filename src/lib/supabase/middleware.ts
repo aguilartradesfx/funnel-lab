@@ -2,11 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = [
+  '/',
   '/login',
   '/register',
   '/forgot-password',
   '/reset-password',
   '/auth',
+  '/pricing',
 ]
 
 export async function updateSession(request: NextRequest) {
@@ -50,13 +52,6 @@ export async function updateSession(request: NextRequest) {
 
   // Redirigir usuarios autenticados que intentan acceder a auth pages
   if (user && (pathname === '/login' || pathname === '/register')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
-  // Redirigir raíz autenticada al dashboard
-  if (user && pathname === '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
