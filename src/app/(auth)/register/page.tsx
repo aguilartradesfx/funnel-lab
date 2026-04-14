@@ -199,7 +199,15 @@ export default function RegisterPage() {
         </button>
 
         <p className="text-center text-xs text-slate-500">
-          Al crear una cuenta aceptás los términos de uso.
+          Al crear una cuenta aceptás nuestros{' '}
+          <Link href="/terms" className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
+            Términos de servicio
+          </Link>{' '}
+          y{' '}
+          <Link href="/privacy" className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
+            Política de privacidad
+          </Link>
+          .
         </p>
       </form>
     </div>

@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils'
 import FunnelDemo from './FunnelDemo'
 import ParticlesBackground from './ParticlesBackground'
+import CookieBanner from './CookieBanner'
 
 // ─── useInView hook ───────────────────────────────────────────────────────────
 
@@ -1076,6 +1077,7 @@ export default function LandingPage({ isAuthenticated }: { isAuthenticated: bool
       <FinalCTA isAuthenticated={isAuthenticated} />
       <Footer />
       </div>
+      <CookieBanner />
     </div>
   )
 }
