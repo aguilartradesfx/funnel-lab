@@ -5,44 +5,105 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { fireUserCreated } from '@/lib/webhooks'
+import PhoneInputField from '@/components/ui/PhoneInputField'
 import { cn } from '@/lib/utils'
+
+const inputClass = cn(
+  'w-full px-3.5 py-2.5 rounded-xl bg-[#0f0f0f] border border-[#2e2e2e]',
+  'text-slate-100 text-sm placeholder:text-slate-600',
+  'focus:outline-none focus:border-orange-500 transition-colors'
+)
+const labelClass = 'block text-sm text-slate-300 font-medium mb-1.5'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+
+  const [firstName, setFirstName]       = useState('')
+  const [lastName, setLastName]         = useState('')
+  const [email, setEmail]               = useState('')
+  const [phone, setPhone]               = useState('')
+  const [password, setPassword]         = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [showConfirm, setShowConfirm]   = useState(false)
+
+  const [loading, setLoading]           = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [error, setError]               = useState('')
+  const [success, setSuccess]           = useState(false)
 
   const supabase = createClient()
+
+  const validate = (): string | null => {
+    if (!firstName.trim()) return 'El nombre es obligatorio'
+    if (!lastName.trim())  return 'El apellido es obligatorio'
+    if (!email.trim())     return 'El email es obligatorio'
+    if (!phone)            return 'El teléfono es obligatorio'
+    if (phone.replace(/\D/g, '').length < 7) return 'El teléfono debe tener al menos 7 dígitos'
+    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres'
+    if (password !== confirmPassword) return 'Las contraseñas no coinciden'
+    return null
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
-      return
-    }
+
+    const validationError = validate()
+    if (validationError) { setError(validationError); return }
+
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
-          data: { full_name: name },
+          data: {
+            full_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      if (error) {
-        setError(error.message === 'User already registered'
-          ? 'Ya existe una cuenta con ese email'
-          : error.message)
+
+      if (signUpError) {
+        setError(
+          signUpError.message === 'User already registered'
+            ? 'Ya existe una cuenta con ese email'
+            : signUpError.message
+        )
         return
       }
+
+      // Guardar teléfono y apellido en profiles
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone,
+            auth_provider: 'email',
+          })
+          .eq('id', data.user.id)
+
+        // Webhook 1: fire-and-forget
+        fireUserCreated({
+          event: 'user_created',
+          timestamp: new Date().toISOString(),
+          user: {
+            id: data.user.id,
+            email: email.trim(),
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone,
+            auth_provider: 'email',
+            created_at: data.user.created_at,
+          },
+        })
+      }
+
       setSuccess(true)
     } finally {
       setLoading(false)
@@ -51,12 +112,14 @@ export default function RegisterPage() {
 
   const handleGoogle = async () => {
     setGoogleLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/onboarding/complete-profile`,
+      },
     })
-    if (error) {
-      setError(error.message)
+    if (oauthError) {
+      setError(oauthError.message)
       setGoogleLoading(false)
     }
   }
@@ -69,7 +132,9 @@ export default function RegisterPage() {
         </div>
         <h2 className="text-xl font-bold text-white mb-2">¡Cuenta creada!</h2>
         <p className="text-slate-400 text-sm mb-6">
-          Revisá tu email <span className="text-slate-200 font-medium">{email}</span> para confirmar tu cuenta.
+          Revisá tu email{' '}
+          <span className="text-slate-200 font-medium">{email}</span>{' '}
+          para confirmar tu cuenta.
         </p>
         <button
           onClick={() => router.push('/login')}
@@ -122,52 +187,30 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={handleRegister} className="space-y-4">
+        {/* Email */}
         <div>
-          <label className="block text-sm text-slate-300 font-medium mb-1.5">Nombre</label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-            placeholder="Tu nombre"
-            className={cn(
-              'w-full px-3.5 py-2.5 rounded-xl bg-[#0f0f0f] border border-[#2e2e2e]',
-              'text-slate-100 text-sm placeholder:text-slate-600',
-              'focus:outline-none focus:border-orange-500 transition-colors'
-            )}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-slate-300 font-medium mb-1.5">Email</label>
+          <label className={labelClass}>Email</label>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
             placeholder="vos@ejemplo.com"
-            className={cn(
-              'w-full px-3.5 py-2.5 rounded-xl bg-[#0f0f0f] border border-[#2e2e2e]',
-              'text-slate-100 text-sm placeholder:text-slate-600',
-              'focus:outline-none focus:border-orange-500 transition-colors'
-            )}
+            className={inputClass}
           />
         </div>
 
+        {/* Contraseña */}
         <div>
-          <label className="block text-sm text-slate-300 font-medium mb-1.5">Contraseña</label>
+          <label className={labelClass}>Contraseña</label>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              placeholder="Mínimo 6 caracteres"
-              className={cn(
-                'w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[#0f0f0f] border border-[#2e2e2e]',
-                'text-slate-100 text-sm placeholder:text-slate-600',
-                'focus:outline-none focus:border-orange-500 transition-colors'
-              )}
+              placeholder="Mínimo 8 caracteres"
+              className={cn(inputClass, 'pr-10')}
             />
             <button
               type="button"
@@ -177,6 +220,75 @@ export default function RegisterPage() {
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
+        </div>
+
+        {/* Confirmar contraseña */}
+        <div>
+          <label className={labelClass}>Confirmar contraseña</label>
+          <div className="relative">
+            <input
+              type={showConfirm ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              required
+              placeholder="Repetí tu contraseña"
+              className={cn(
+                inputClass,
+                'pr-10',
+                confirmPassword && password !== confirmPassword
+                  ? 'border-red-500/60'
+                  : confirmPassword && password === confirmPassword
+                    ? 'border-emerald-500/60'
+                    : ''
+              )}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+            >
+              {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          {confirmPassword && password !== confirmPassword && (
+            <p className="text-xs text-red-400 mt-1">Las contraseñas no coinciden</p>
+          )}
+        </div>
+
+        {/* Nombre + Apellido (50/50) */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>Nombre</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={e => setFirstName(e.target.value)}
+              required
+              placeholder="Juan"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Apellido</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={e => setLastName(e.target.value)}
+              required
+              placeholder="Pérez"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        {/* Teléfono */}
+        <div>
+          <label className={labelClass}>Teléfono</label>
+          <PhoneInputField
+            value={phone}
+            onChange={setPhone}
+            placeholder="8888-1234"
+          />
         </div>
 
         {error && (

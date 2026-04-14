@@ -25,17 +25,29 @@ export default async function DashboardPage() {
 
   const profileResult = await supabase
     .from('profiles')
-    .select('full_name, avatar_url')
+    .select('full_name, avatar_url, phone, onboarding_completed')
     .eq('id', user.id)
     .single()
+
+  const profile = profileResult.data
+
+  // Redirigir si el onboarding no está completo
+  if (profile && !profile.onboarding_completed) {
+    if (!profile.phone) {
+      // Usuario de Google sin teléfono → completar perfil primero
+      redirect('/onboarding/complete-profile')
+    } else {
+      redirect('/onboarding')
+    }
+  }
 
   return (
     <DashboardClient
       user={{
         id: user.id,
         email: user.email ?? '',
-        name: profileResult.data?.full_name ?? user.email?.split('@')[0] ?? 'Usuario',
-        avatarUrl: profileResult.data?.avatar_url ?? '',
+        name: profile?.full_name ?? user.email?.split('@')[0] ?? 'Usuario',
+        avatarUrl: profile?.avatar_url ?? '',
       }}
       initialProjects={projectsResult.data ?? []}
       plan={planResult.data ?? { plan: 'pro', monthly_credits_total: 150, monthly_credits_used: 0, pack_credits: 0 }}

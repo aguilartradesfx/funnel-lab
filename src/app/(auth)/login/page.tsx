@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -17,6 +18,17 @@ export default function LoginPage() {
   const [error, setError] = useState('')
 
   const supabase = createClient()
+
+  useEffect(() => {
+    const callbackError = searchParams.get('error')
+    if (callbackError) {
+      if (callbackError === 'auth_callback_failed') {
+        setError('Error al iniciar sesión con Google. Intentá de nuevo.')
+      } else {
+        setError(`Error de autenticación: ${callbackError}`)
+      }
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
