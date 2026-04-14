@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { useFunnelStore } from '@/stores/funnelStore'
 import { createClient } from '@/lib/supabase/client'
 import FunnelEditor from '@/components/FunnelEditor'
+import { Monitor } from 'lucide-react'
 
 interface Scenario {
   id: string
@@ -57,9 +58,18 @@ export default function ProjectEditorClient({
 
   const [scenarioList, setScenarioList] = useState<Scenario[]>(scenarios)
   const [activeScenario, setActiveScenario] = useState<string | null>(activeScenarioId)
+  const [isMobile, setIsMobile] = useState(false)
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isFirstLoad = useRef(true)
+
+  // Detectar mobile (< 1024px) y bloquear acceso al editor
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Cargar escenario activo en el store
   const loadScenario = useCallback((scenario: Scenario | undefined) => {
@@ -190,6 +200,40 @@ export default function ProjectEditorClient({
       await switchScenario(remaining[0].id)
     }
   }, [activeScenario, scenarioList, supabase, switchScenario])
+
+  if (isMobile) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6"
+        style={{ backgroundColor: '#111111' }}
+      >
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.15)' }}
+        >
+          <Monitor size={30} className="text-orange-400" />
+        </div>
+
+        <div className="space-y-2 max-w-sm">
+          <h1 className="text-white font-bold text-xl leading-tight">
+            Solo disponible en computadora
+          </h1>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            El editor de funnels requiere una pantalla más grande para funcionar correctamente.
+            Abrilo desde tu laptop o PC para acceder a todas las funciones.
+          </p>
+        </div>
+
+        <a
+          href="/dashboard"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+          style={{ backgroundColor: '#1e1e1e', border: '1px solid #2e2e2e' }}
+        >
+          ← Volver al inicio
+        </a>
+      </div>
+    )
+  }
 
   return (
     <FunnelEditor

@@ -1875,10 +1875,35 @@ export const NODE_DEFINITIONS: Record<FunnelNodeType, NodeDefinition> = {
     hasSingleOutput: false,
     hasBranchOutput: false,
     hasInput: false,
-    defaultConfig: { text: '', color: '#fef08a' },
+    defaultConfig: { title: '', text: '', color: '#fef08a', size: 'medium' },
     fields: [
-      { key: 'text', label: 'Texto de la nota', type: 'text', tooltip: 'Agrega comentarios o instrucciones' },
-      { key: 'color', label: 'Color', type: 'text', tooltip: 'Color de fondo en hex' },
+      { key: 'title', label: 'Título', type: 'text', tooltip: 'Título de la nota (opcional)' },
+      { key: 'text',  label: 'Contenido', type: 'text', tooltip: 'Texto de la nota' },
+      {
+        key: 'color',
+        label: 'Color',
+        type: 'select',
+        options: [
+          { value: '#fef08a', label: 'Amarillo' },
+          { value: '#bbf7d0', label: 'Verde' },
+          { value: '#bfdbfe', label: 'Azul' },
+          { value: '#fecaca', label: 'Rojo' },
+          { value: '#e9d5ff', label: 'Violeta' },
+          { value: '#fed7aa', label: 'Naranja' },
+          { value: '#f1f5f9', label: 'Blanco' },
+          { value: '#1e293b', label: 'Oscuro' },
+        ],
+      },
+      {
+        key: 'size',
+        label: 'Tamaño',
+        type: 'select',
+        options: [
+          { value: 'small',  label: 'Pequeño' },
+          { value: 'medium', label: 'Mediano' },
+          { value: 'large',  label: 'Grande' },
+        ],
+      },
     ],
   },
 

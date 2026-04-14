@@ -120,6 +120,69 @@ function FunnelNodeComponent({ id, data, selected }: NodeProps<FunnelRFNode>) {
 
   const hasOutput = def.hasSingleOutput || def.hasYesNoOutput || def.hasBranchOutput
 
+  // ── Renderizado especial para sticky note ─────────────────────────────────
+  if (nodeType === 'stickyNote') {
+    const c = config as { title?: string; text?: string; color?: string; size?: string }
+    const bg = c.color || '#fef08a'
+    const isDark = bg === '#1e293b'
+    const sizeMap: Record<string, { w: number; h: number }> = {
+      small:  { w: 160, h: 110 },
+      medium: { w: 220, h: 160 },
+      large:  { w: 300, h: 210 },
+    }
+    const { w, h } = sizeMap[c.size ?? 'medium'] ?? sizeMap.medium
+    return (
+      <div
+        onClick={handleClick}
+        className="relative select-none"
+        style={{ width: w, height: h }}
+      >
+        <div
+          className="w-full h-full rounded-lg overflow-hidden flex flex-col"
+          style={{
+            backgroundColor: bg,
+            border: selected ? '2px solid rgba(249,115,22,0.7)' : '2px solid transparent',
+            boxShadow: selected
+              ? '0 0 0 1px rgba(249,115,22,0.2), 0 4px 16px rgba(0,0,0,0.4)'
+              : '2px 3px 10px rgba(0,0,0,0.25)',
+          }}
+        >
+          {/* Fold effect top-right */}
+          <div
+            className="absolute top-0 right-0 w-6 h-6"
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${bg} 50%, rgba(0,0,0,0.15) 50%)`,
+              borderRadius: '0 6px 0 0',
+            }}
+          />
+          {/* Title */}
+          {c.title ? (
+            <div
+              className="px-3 pt-2.5 pb-1 flex-shrink-0"
+              style={{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)' }}
+            >
+              <p
+                className="text-[12px] font-bold leading-tight truncate"
+                style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}
+              >
+                {c.title}
+              </p>
+            </div>
+          ) : null}
+          {/* Body */}
+          <div className="flex-1 px-3 py-2 overflow-hidden">
+            <p
+              className="text-[11px] leading-relaxed whitespace-pre-wrap line-clamp-6"
+              style={{ color: isDark ? '#94a3b8' : '#334155' }}
+            >
+              {c.text || (c.title ? '' : 'Nota vacía…')}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Posiciones de handles alineadas al grid de 20px.
   // Nodo fijo en 120px = 6×20:  50%=60px, 33%=40px, 67%=80px, 17%=20px, 83%=100px
   const BRANCH_TOPS: Record<number, string[]> = {

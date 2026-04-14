@@ -584,8 +584,10 @@ export interface DelayConfig {
 
 // Note (no simulation)
 export interface NoteConfig {
+  title?: string
   text: string
-  color?: string
+  color?: string   // hex color
+  size?: 'small' | 'medium' | 'large'
 }
 
 // Recurring revenue

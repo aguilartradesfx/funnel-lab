@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Sparkles, Send, Loader2, BarChart3, Wand2, FileText, Lightbulb, ChevronRight } from 'lucide-react'
+import { X, Sparkles, Send, Loader2, BarChart3, Wand2, FileText, Lightbulb, ChevronRight, Trash2 } from 'lucide-react'
 import { useFunnelStore } from '@/stores/funnelStore'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -280,6 +280,10 @@ const ACTION_MESSAGES: Record<string, string> = {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
+const MIN_WIDTH = 280
+const MAX_WIDTH = 700
+const DEFAULT_WIDTH = 360
+
 export default function AIPanel() {
   const router = useRouter()
   const supabase = createClient()
@@ -304,6 +308,60 @@ export default function AIPanel() {
   // Generar funnel: modo de ingreso de descripción
   const [genFunnelMode, setGenFunnelMode]   = useState(false)
   const [genFunnelInput, setGenFunnelInput] = useState('')
+
+  // Limpiar historial
+  const [clearConfirm, setClearConfirm] = useState(false)
+
+  const clearHistory = useCallback(async () => {
+    if (!clearConfirm) { setClearConfirm(true); return }
+    setClearConfirm(false)
+    setMessages([])
+    setError('')
+    if (projectId) {
+      await Promise.all([
+        supabase.from('ai_chat_messages').delete().eq('project_id', projectId),
+        supabase.from('ai_chat_summaries').delete().eq('project_id', projectId),
+      ])
+    }
+  }, [clearConfirm, projectId, supabase])
+
+  // Panel width (resizable)
+  const [panelWidth, setPanelWidth] = useState<number>(DEFAULT_WIDTH)
+  const [isResizing, setIsResizing] = useState(false)
+  const dragStartX   = useRef(0)
+  const dragStartWidth = useRef(0)
+
+  // Init width from localStorage after mount
+  useEffect(() => {
+    const saved = localStorage.getItem('ai-panel-width')
+    if (saved) {
+      const n = parseInt(saved, 10)
+      if (n >= MIN_WIDTH && n <= MAX_WIDTH) setPanelWidth(n)
+    }
+  }, [])
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragStartX.current = e.clientX
+    dragStartWidth.current = panelWidth
+    setIsResizing(true)
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const delta = dragStartX.current - ev.clientX
+      const next = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta))
+      setPanelWidth(next)
+    }
+    const onMouseUp = (ev: MouseEvent) => {
+      const delta = dragStartX.current - ev.clientX
+      const final = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta))
+      localStorage.setItem('ai-panel-width', String(final))
+      setIsResizing(false)
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [panelWidth])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLTextAreaElement>(null)
@@ -459,9 +517,25 @@ export default function AIPanel() {
       />
 
       <aside
-        className="fixed right-0 top-0 bottom-0 w-[340px] border-l z-50 flex flex-col shadow-2xl"
-        style={{ backgroundColor: '#111111', borderColor: '#222' }}
+        className="fixed right-0 top-0 bottom-0 border-l z-50 flex flex-col shadow-2xl"
+        style={{ backgroundColor: '#111111', borderColor: '#222', width: panelWidth }}
       >
+        {/* ── Drag-to-resize handle ────────────────────────────────────────── */}
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className="absolute left-0 top-0 bottom-0 z-10 flex items-center justify-center group"
+          style={{ width: 8, cursor: 'ew-resize' }}
+        >
+          <div
+            className={cn(
+              'h-12 rounded-full transition-all duration-150',
+              isResizing
+                ? 'w-[3px] bg-orange-500'
+                : 'w-[2px] bg-[#2e2e2e] group-hover:bg-orange-500/60 group-hover:w-[3px]'
+            )}
+          />
+        </div>
+
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#1e1e1e' }}>
           <div className="flex items-center gap-2">
@@ -481,6 +555,23 @@ export default function AIPanel() {
                 <Sparkles size={9} />
                 <span>{creditsLeft} créditos</span>
               </div>
+            )}
+            {/* Limpiar historial */}
+            {messages.length > 0 && (
+              <button
+                onClick={clearHistory}
+                onBlur={() => setClearConfirm(false)}
+                title={clearConfirm ? 'Clic para confirmar' : 'Limpiar historial'}
+                className={cn(
+                  'flex items-center gap-1 p-1.5 rounded-lg text-[11px] transition-colors',
+                  clearConfirm
+                    ? 'text-red-400 bg-red-500/10 border border-red-500/20'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                )}
+              >
+                <Trash2 size={13} />
+                {clearConfirm && <span className="pr-0.5">¿Borrar?</span>}
+              </button>
             )}
             <button
               onClick={() => toggleAIPanel(false)}
