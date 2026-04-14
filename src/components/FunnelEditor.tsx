@@ -8,9 +8,8 @@ import EditorToolbar from './toolbar/EditorToolbar'
 import NodeLibrary from './sidebar/NodeLibrary'
 import FunnelCanvas from './canvas/FunnelCanvas'
 import NodeConfigPanel from './panels/NodeConfigPanel'
-import ResultsPanel from './panels/ResultsPanel'
+import RightPanel from './panels/RightPanel'
 import TemplateLibrary from './templates/TemplateLibrary'
-import AIPanel from './ai/AIPanel'
 import ValidationModal from './panels/ValidationModal'
 import QuickAddPopup from './panels/QuickAddPopup'
 import HelpModal from './panels/HelpModal'
@@ -132,8 +131,8 @@ export default function FunnelEditor({
             {isSidebarOpen && <NodeLibrary />}
           </main>
 
-          {/* Panel de resultados (derecho) */}
-          <ResultsPanel />
+          {/* Panel derecho unificado (resultados + chat) */}
+          <RightPanel />
         </div>
 
         {/* Panel de configuración de nodo (popup flotante) */}
@@ -144,9 +143,6 @@ export default function FunnelEditor({
 
         {/* Modal de templates */}
         <TemplateLibrary />
-
-        {/* Panel de IA (flotante derecho) */}
-        <AIPanel />
 
         {/* Modal de validación */}
         <ValidationModal />

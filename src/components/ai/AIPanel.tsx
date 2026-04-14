@@ -278,13 +278,9 @@ const ACTION_MESSAGES: Record<string, string> = {
   summary:     'Generá un resumen ejecutivo de este funnel para presentar a un cliente. Incluí: estrategia del funnel, métricas clave, resultados proyectados, y próximos pasos recomendados.',
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+// ─── Componente principal (contenido sin wrapper fixed) ───────────────────────
 
-const MIN_WIDTH = 280
-const MAX_WIDTH = 700
-const DEFAULT_WIDTH = 360
-
-export default function AIPanel() {
+export function AIPanelContent() {
   const router = useRouter()
   const supabase = createClient()
 
@@ -324,44 +320,6 @@ export default function AIPanel() {
       ])
     }
   }, [clearConfirm, projectId, supabase])
-
-  // Panel width (resizable)
-  const [panelWidth, setPanelWidth] = useState<number>(DEFAULT_WIDTH)
-  const [isResizing, setIsResizing] = useState(false)
-  const dragStartX   = useRef(0)
-  const dragStartWidth = useRef(0)
-
-  // Init width from localStorage after mount
-  useEffect(() => {
-    const saved = localStorage.getItem('ai-panel-width')
-    if (saved) {
-      const n = parseInt(saved, 10)
-      if (n >= MIN_WIDTH && n <= MAX_WIDTH) setPanelWidth(n)
-    }
-  }, [])
-
-  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    dragStartX.current = e.clientX
-    dragStartWidth.current = panelWidth
-    setIsResizing(true)
-
-    const onMouseMove = (ev: MouseEvent) => {
-      const delta = dragStartX.current - ev.clientX
-      const next = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta))
-      setPanelWidth(next)
-    }
-    const onMouseUp = (ev: MouseEvent) => {
-      const delta = dragStartX.current - ev.clientX
-      const final = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta))
-      localStorage.setItem('ai-panel-width', String(final))
-      setIsResizing(false)
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseup', onMouseUp)
-    }
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
-  }, [panelWidth])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLTextAreaElement>(null)
@@ -504,38 +462,10 @@ export default function AIPanel() {
     }
   }
 
-  if (!isOpen) return null
-
   const noCredits = creditsLeft !== null && creditsLeft <= 0
 
   return (
-    <>
-      {/* Overlay mobile */}
-      <div
-        className="fixed inset-0 bg-black/40 z-40 md:hidden"
-        onClick={() => toggleAIPanel(false)}
-      />
-
-      <aside
-        className="fixed right-0 top-0 bottom-0 border-l z-50 flex flex-col shadow-2xl"
-        style={{ backgroundColor: '#111111', borderColor: '#222', width: panelWidth }}
-      >
-        {/* ── Drag-to-resize handle ────────────────────────────────────────── */}
-        <div
-          onMouseDown={handleResizeMouseDown}
-          className="absolute left-0 top-0 bottom-0 z-10 flex items-center justify-center group"
-          style={{ width: 8, cursor: 'ew-resize' }}
-        >
-          <div
-            className={cn(
-              'h-12 rounded-full transition-all duration-150',
-              isResizing
-                ? 'w-[3px] bg-orange-500'
-                : 'w-[2px] bg-[#2e2e2e] group-hover:bg-orange-500/60 group-hover:w-[3px]'
-            )}
-          />
-        </div>
-
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#111111' }}>
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#1e1e1e' }}>
           <div className="flex items-center gap-2">
@@ -772,6 +702,30 @@ export default function AIPanel() {
             </div>
           </>
         )}
+    </div>
+  )
+}
+
+// ─── Wrapper con aside fixed (backwards compat) ───────────────────────────────
+
+export default function AIPanel() {
+  const isOpen        = useFunnelStore(s => s.isAIPanelOpen)
+  const toggleAIPanel = useFunnelStore(s => s.toggleAIPanel)
+
+  if (!isOpen) return null
+
+  return (
+    <>
+      {/* Overlay mobile */}
+      <div
+        className="fixed inset-0 bg-black/40 z-40 md:hidden"
+        onClick={() => toggleAIPanel(false)}
+      />
+      <aside
+        className="fixed right-0 top-0 bottom-0 w-[360px] border-l z-50 flex flex-col shadow-2xl"
+        style={{ backgroundColor: '#111111', borderColor: '#222' }}
+      >
+        <AIPanelContent />
       </aside>
     </>
   )

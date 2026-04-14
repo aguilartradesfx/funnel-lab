@@ -404,9 +404,9 @@ function HistorySection({ history, onSelect }: {
   )
 }
 
-// ─── Panel principal ──────────────────────────────────────────────────────
+// ─── Panel principal (contenido sin wrapper) ─────────────────────────────
 
-export default function ResultsPanel() {
+export function ResultsPanelContent() {
   const simResults = useFunnelStore(s => s.simResults)
   const hasSimulated = useFunnelStore(s => s.hasSimulated)
   const simHistory = useFunnelStore(s => s.simHistory)
@@ -417,7 +417,7 @@ export default function ResultsPanel() {
   const displayRun = viewingRun ?? simHistory[0] ?? null
 
   return (
-    <aside className="w-[252px] flex-shrink-0 h-full bg-[#0c0c0c] border-r border-[#1e1e1e] flex flex-col">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e1e] flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -465,6 +465,16 @@ export default function ResultsPanel() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Wrapper con aside (backwards compat) ────────────────────────────────
+
+export default function ResultsPanel() {
+  return (
+    <aside className="w-[252px] flex-shrink-0 h-full bg-[#0c0c0c] border-r border-[#1e1e1e] flex flex-col">
+      <ResultsPanelContent />
     </aside>
   )
 }
