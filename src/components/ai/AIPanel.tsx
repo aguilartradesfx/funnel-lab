@@ -36,19 +36,40 @@ function extractFunnelJSON(content: string): {
   if (!jsonMatch) return { funnelData: null, preText: content }
 
   try {
-    const parsed = JSON.parse(jsonMatch[1]) as FunnelJSONData
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = JSON.parse(jsonMatch[1]) as any
     if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
       return { funnelData: null, preText: content }
+    }
+
+    const funnelData: FunnelJSONData = {
+      funnel_name: parsed.funnel_name,
+      nodes: normalizeAINodes(parsed.nodes),
+      connections: parsed.connections ?? parsed.edges,
     }
 
     // Solo conservar el texto antes del bloque JSON; la tarjeta de importación reemplaza al bloque
     const jsonStart = content.indexOf('```json')
     const preText = jsonStart > 0 ? content.slice(0, jsonStart).trim() : ''
 
-    return { funnelData: parsed, preText }
+    return { funnelData, preText }
   } catch {
     return { funnelData: null, preText: content }
   }
+}
+
+// ─── Normaliza nodos del formato IA (soporta formato simplificado Y formato RF completo) ──
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeAINodes(raw: any[]): FunnelJSONData['nodes'] {
+  return raw.map(n => {
+    // Formato React Flow completo: { id, type, position, data: { label, config, nodeType } }
+    const d = n?.data as Record<string, unknown> | undefined
+    const type = String((d?.nodeType ?? n?.type) ?? 'landingPage')
+    const label = String((n?.label ?? d?.label ?? n?.type) ?? type)
+    const config = (n?.config ?? d?.config ?? {}) as Record<string, unknown>
+    return { type, label, config }
+  })
 }
 
 // ─── Construye la cadena de nodos del funnel ──────────────────────────────────
@@ -75,7 +96,7 @@ function buildNodeChain(data: FunnelJSONData): string {
   while (current !== undefined && !visited.has(current) && chain.length < 10) {
     visited.add(current)
     const node = data.nodes[current]
-    if (node) chain.push(node.label)
+    if (node?.label) chain.push(node.label)
     current = next.get(current)
   }
 
@@ -228,6 +249,26 @@ function renderMarkdown(text: string): React.ReactNode {
         codeLines.push(lines[i])
         i++
       }
+
+      // Interceptar bloques JSON que contengan un funnel (campo "nodes")
+      if (lang === 'json') {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parsed = JSON.parse(codeLines.join('\n')) as any
+          if (parsed && Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
+            const funnelData: FunnelJSONData = {
+              funnel_name: parsed.funnel_name,
+              nodes: normalizeAINodes(parsed.nodes),
+              connections: parsed.connections ?? parsed.edges,
+            }
+            blocks.push(<FunnelImportCard key={i} funnelData={funnelData} />)
+            i++; continue
+          }
+        } catch {
+          // Si no es JSON válido, caer al render normal de <pre>
+        }
+      }
+
       blocks.push(
         <pre key={i} className="mt-2 mb-2 bg-[#141414] border border-[#2a2a2a] rounded-xl p-3 overflow-x-auto text-[11px] text-slate-300 font-mono leading-relaxed">
           {lang && <div className="text-[10px] text-slate-600 mb-1.5 uppercase tracking-wider">{lang}</div>}
