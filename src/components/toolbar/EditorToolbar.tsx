@@ -430,11 +430,12 @@ export default function EditorToolbar() {
 
   return (
     <header className="h-11 bg-[#0f0f0f] border-b border-[#2e2e2e] flex items-center justify-between px-3 flex-shrink-0">
-      {/* Izquierda: back + logo + nombre + escenario */}
+      {/* Izquierda: logo + back + nombre + escenario */}
       <div className="flex items-center gap-2">
-        <DashboardButton />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="FunnelLab" className="h-6 w-auto flex-shrink-0" />
+        <div className="w-px h-4 bg-[#2e2e2e]" />
+        <DashboardButton />
         <div className="w-px h-4 bg-[#2e2e2e]" />
         <ProjectName />
         {scenarios.length > 0 && (

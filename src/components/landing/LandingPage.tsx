@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import FunnelDemo from './FunnelDemo'
+import ParticlesBackground from './ParticlesBackground'
 
 // ─── useInView hook ───────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
 
 function FunnelBuilderMock() {
   return (
-    <div className="w-full rounded-2xl border border-[#1e1e1e] bg-[#0a0a0a] overflow-hidden shadow-[0_40px_120px_-20px_rgba(0,0,0,0.95)]">
+    <div className="w-full rounded-2xl border border-white/8 bg-[#0a0a0a] overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.05),0_0_80px_rgba(255,255,255,0.03),0_40px_120px_-20px_rgba(0,0,0,0.95)]">
 
       {/* Browser title bar */}
       <div className="h-9 bg-[#0d0d0d] border-b border-[#1a1a1a] flex items-center px-4 gap-3 flex-shrink-0">
@@ -166,9 +167,9 @@ function FunnelBuilderMock() {
           <div className="hidden sm:block px-2.5 py-1 rounded-md border border-[#1e1e1e] bg-[#111]">
             <span className="text-[10px] text-[#4a4a4a]">Guardar</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-orange-600">
-            <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
-            <span className="text-[10px] font-semibold text-white">Simular</span>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-white">
+            <div className="w-1.5 h-1.5 rounded-full bg-black/30" />
+            <span className="text-[10px] font-semibold text-black">Simular</span>
           </div>
         </div>
       </div>
@@ -187,9 +188,9 @@ function FunnelBuilderMock() {
           ].map((item, i) => (
             <div key={i} className={cn(
               'w-7 h-7 rounded-lg border flex items-center justify-center',
-              item.active ? 'border-orange-500/40 bg-orange-500/10' : 'border-[#1e1e1e] bg-[#111]',
+              item.active ? 'border-white/15 bg-white/5' : 'border-[#1e1e1e] bg-[#111]',
             )}>
-              <span className={cn('text-[10px]', item.active ? 'text-orange-400' : 'text-[#3a3a3a]')}>{item.label}</span>
+              <span className={cn('text-[10px]', item.active ? 'text-white/50' : 'text-[#3a3a3a]')}>{item.label}</span>
             </div>
           ))}
         </div>
@@ -207,17 +208,17 @@ function FunnelBuilderMock() {
             <div className="flex items-center gap-2 pl-5 pr-3">
 
               {/* Node: Facebook Ads */}
-              <div className="flex-shrink-0 w-[112px] rounded-xl border border-orange-500/50 bg-[#0f0f0f] shadow-[0_0_24px_rgba(249,115,22,0.07)]">
+              <div className="flex-shrink-0 w-[112px] rounded-xl border border-white/12 bg-[#0f0f0f] shadow-[0_0_20px_rgba(255,255,255,0.03)]">
                 <div className="p-2.5">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <div className="w-5 h-5 rounded-md bg-orange-500/15 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[9px] text-orange-400 font-bold">◈</span>
+                    <div className="w-5 h-5 rounded-md bg-white/8 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[9px] text-white/50 font-bold">◈</span>
                     </div>
                     <span className="text-[10px] font-semibold text-white leading-tight">Facebook Ads</span>
                   </div>
                   <p className="text-[8px] text-[#444] mb-1.5">$1,000/mes · CPC $0.80</p>
-                  <div className="bg-orange-500/10 rounded-lg py-1 px-1.5 text-center">
-                    <span className="text-[10px] font-bold text-orange-400">1,250</span>
+                  <div className="bg-white/5 rounded-lg py-1 px-1.5 text-center">
+                    <span className="text-[10px] font-bold text-white/70">1,250</span>
                     <span className="text-[8px] text-[#555] ml-0.5">visitas</span>
                   </div>
                 </div>
@@ -270,8 +271,8 @@ function FunnelBuilderMock() {
               <div className="w-px h-14 bg-[#1a1a1a] flex-shrink-0 mx-1" />
 
               {/* Results widget */}
-              <div className="flex-shrink-0 w-[100px] rounded-xl border border-orange-500/25 bg-[#0d0d0d] p-2.5">
-                <p className="text-[8px] font-semibold text-orange-400 uppercase tracking-wider mb-2">Resultado</p>
+              <div className="flex-shrink-0 w-[100px] rounded-xl border border-white/8 bg-[#0d0d0d] p-2.5">
+                <p className="text-[8px] font-semibold text-white/30 uppercase tracking-wider mb-2">Resultado</p>
                 <div className="space-y-1.5">
                   <div>
                     <p className="text-[8px] text-[#555]">Revenue</p>
@@ -304,8 +305,8 @@ function FunnelBuilderMock() {
             <div className="p-2 rounded-lg bg-[#111] border border-[#1a1a1a]">
               <p className="text-[8px] text-[#555] leading-relaxed">ROAS 10.6x. Funnel bien optimizado.</p>
             </div>
-            <div className="p-2 rounded-lg bg-[#111] border border-orange-500/15">
-              <p className="text-[8px] text-orange-400/70 leading-relaxed">A/B test en landing puede mejorar +20% revenue.</p>
+            <div className="p-2 rounded-lg bg-[#111] border border-white/6">
+              <p className="text-[8px] text-white/30 leading-relaxed">A/B test en landing puede mejorar +20% revenue.</p>
             </div>
           </div>
           <div className="border-t border-[#1a1a1a] pt-2.5 mt-auto">
@@ -322,7 +323,7 @@ function FunnelBuilderMock() {
                 </div>
                 <div className="h-1 bg-[#111] rounded-full overflow-hidden">
                   <div
-                    className={cn('h-full rounded-full', item.pct === 9 ? 'bg-orange-500/50' : 'bg-[#2e2e2e]')}
+                    className={cn('h-full rounded-full', item.pct === 9 ? 'bg-white/25' : 'bg-[#2e2e2e]')}
                     style={{ width: `${item.pct}%` }}
                   />
                 </div>
@@ -351,35 +352,38 @@ function FunnelBuilderMock() {
 
 function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <section className="relative pt-28 pb-0 overflow-hidden bg-[#030303]">
-      {/* Subtle white radial at top — gives depth without color */}
+    <section className="relative pt-28 pb-0 overflow-hidden bg-[#080808]">
+      {/* Soft white radial glow — top center */}
       <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse 80% 55% at 50% -10%, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 40%, transparent 70%)',
+      }} />
+      {/* Extra subtle center warmth */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse 50% 40% at 30% 50%, rgba(255,255,255,0.03) 0%, transparent 60%)',
       }} />
 
-      {/* Text block */}
-      <div className="relative max-w-4xl mx-auto text-center px-6 mb-16">
+      {/* Text block — same width as the mock below */}
+      <div className="relative max-w-5xl mx-auto text-left px-6 mb-16">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-white/60 mb-7">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/8 text-xs font-medium text-orange-400 mb-7">
           <Zap size={11} />
           Simulá, predecí y optimizá con IA
         </div>
 
-        {/* Title — pure white, maximum contrast */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-[1.06] mb-6 tracking-tight">
+        {/* Title */}
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-[1.08] mb-6 tracking-tight">
           Simulá tu funnel<br />
-          antes de gastar<br />
-          <span className="text-orange-500">un centavo</span>
+          antes de gastar <span className="text-[#aaa]">un centavo</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-white/40 max-w-2xl mb-10 leading-relaxed">
           Para marketers, agencias y emprendedores: construí funnels visualmente,
           predecí conversiones y detectá cuellos de botella antes de invertir.
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-start">
           <Link
             href={isAuthenticated ? '/dashboard' : '/register'}
             className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white hover:bg-[#e8e8e8] text-black font-semibold text-base transition-all"
@@ -405,6 +409,9 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
           WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
         }}
       >
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(255,255,255,0.06) 0%, transparent 70%)',
+        }} />
         <FunnelBuilderMock />
       </div>
     </section>
@@ -418,7 +425,7 @@ function SocialProof() {
   return (
     <section className="border-y border-[#1a1a1a] bg-[#0f0f0f] py-6 px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto">
-        <p className="text-center text-xs text-[#555] uppercase tracking-widest mb-5">
+        <p className="text-center text-xs text-orange-500/60 uppercase tracking-widest mb-5">
           Diseñado para marketers, agencias digitales y emprendedores
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
@@ -458,7 +465,7 @@ function ProblemSolution() {
     <section className="py-24 px-6">
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-16">
-          <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">El problema</p>
+          <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">El problema</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
             ¿Cuánto dinero perdiste lanzando funnels<br className="hidden md:block" /> sin datos que los respaldaran?
           </h2>
@@ -479,8 +486,8 @@ function ProblemSolution() {
         </div>
 
         <FadeIn className="text-center">
-          <div className="inline-block px-6 py-3 rounded-xl border border-orange-500/30 bg-orange-500/5">
-            <p className="text-base font-semibold text-orange-300">
+          <div className="inline-block px-6 py-3 rounded-xl border border-white/12 bg-white/4">
+            <p className="text-base font-semibold text-white/60">
               FunnelLab te deja simular todo <span className="text-white">ANTES</span> de gastar
             </p>
           </div>
@@ -497,7 +504,7 @@ function DemoSection() {
     <section id="demo" className="py-24 px-6 bg-[#0f0f0f] border-y border-[#1a1a1a]">
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-12">
-          <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Demo en vivo</p>
+          <p className="text-white/30 text-sm font-semibold uppercase tracking-wider mb-4">Demo en vivo</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Mirá cómo funciona</h2>
           <p className="text-[#888] max-w-xl mx-auto">
             Simulación en tiempo real de un funnel real. Nodos que aparecen, métricas que se calculan, resultados que se leen solos.
@@ -541,15 +548,15 @@ function Features() {
     <section id="features" className="py-24 px-6">
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-16">
-          <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Features</p>
+          <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">Features</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white">Todo lo que necesitás para simular</h2>
         </FadeIn>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {features.map((f, i) => (
             <FadeIn key={f.title} delay={i * 80}>
-              <div className="p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full group hover:border-orange-500/30 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-orange-600/15 border border-orange-600/20 flex items-center justify-center mb-4">
+              <div className="p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full group hover:border-white/15 transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-4">
                   {f.icon}
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">{f.title}</h3>
@@ -591,7 +598,7 @@ function HowItWorks() {
     <section className="py-24 px-6 bg-[#0f0f0f] border-y border-[#1a1a1a]">
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-16">
-          <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Cómo funciona</p>
+          <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">Cómo funciona</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white">Tres pasos y ya estás simulando</h2>
         </FadeIn>
 
@@ -652,12 +659,12 @@ function AIAssistant() {
 
           {/* Right: chat window */}
           <FadeIn delay={100}>
-            <div className="rounded-2xl border border-white/8 bg-[#0d0d0d] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
+            <div className="rounded-2xl border border-white/8 bg-[#0d0d0d] overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.05),0_0_80px_rgba(255,255,255,0.03),0_32px_80px_rgba(0,0,0,0.6)]">
 
               {/* Chat header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-white/6">
-                <div className="w-7 h-7 rounded-lg bg-orange-500/15 border border-orange-500/25 flex items-center justify-center flex-shrink-0">
-                  <Brain size={13} className="text-orange-400" />
+                <div className="w-7 h-7 rounded-lg bg-white/8 border border-white/12 flex items-center justify-center flex-shrink-0">
+                  <Brain size={13} className="text-white/50" />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-white">Asistente FunnelLab</p>
@@ -681,13 +688,13 @@ function AIAssistant() {
 
                 {/* AI response 1 */}
                 <div className="flex gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Brain size={11} className="text-orange-400" />
+                  <div className="w-6 h-6 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Brain size={11} className="text-white/50" />
                   </div>
                   <div className="bg-[#111] border border-white/6 text-white/60 text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[88%] space-y-3">
                     <p>Para un infoproducto de $197 con tráfico frío, un <span className="text-white font-medium">Funnel VSL o Webinar</span> convierte mucho mejor que ir directo al checkout.</p>
                     <div className="bg-black/40 rounded-xl p-3 border border-white/6 font-mono text-[11px] text-white/40 leading-relaxed space-y-0.5">
-                      <p><span className="text-orange-400/70">◈</span> FB/IG Ads — $800/mes</p>
+                      <p><span className="text-white/35">◈</span> FB/IG Ads — $800/mes</p>
                       <p className="pl-3 text-white/25">↓</p>
                       <p className="pl-3"><span className="text-white/50">▣</span> Landing de inscripción</p>
                       <p className="pl-6 text-white/25">↓</p>
@@ -723,12 +730,12 @@ function AIAssistant() {
 
                 {/* AI response 2 — result */}
                 <div className="flex gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Brain size={11} className="text-orange-400" />
+                  <div className="w-6 h-6 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Brain size={11} className="text-white/50" />
                   </div>
                   <div className="bg-[#111] border border-white/6 text-white/60 text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[88%] space-y-3">
                     <p>Listo. Creé tu funnel en el editor:</p>
-                    <div className="bg-black/40 rounded-xl border border-orange-500/20 p-3 space-y-2">
+                    <div className="bg-black/40 rounded-xl border border-white/10 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         <span className="text-xs font-semibold text-white">Webinar $197 — FB/IG Ads</span>
@@ -753,8 +760,8 @@ function AIAssistant() {
               <div className="border-t border-white/6 px-4 py-3">
                 <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-black/40 border border-white/8">
                   <span className="text-xs text-white/20 flex-1">Describí tu negocio o pedile que analice tu funnel...</span>
-                  <div className="w-6 h-6 rounded-lg bg-orange-600 flex items-center justify-center flex-shrink-0">
-                    <ArrowRight size={11} className="text-white" />
+                  <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+                    <ArrowRight size={11} className="text-black" />
                   </div>
                 </div>
               </div>
@@ -782,7 +789,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
       id: 'pro',
       name: 'Pro',
       price: '$14.99',
-      color: 'text-orange-400',
+      color: 'text-white',
       highlight: true,
       features: ['Todo lo de Starter', '150 créditos IA/mes', '10 proyectos', '4 escenarios por proyecto', 'Asistente IA completo', '7 días de prueba gratis'],
     },
@@ -802,12 +809,12 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
     <section id="pricing" className="py-24 px-6">
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-16">
-          <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Planes</p>
+          <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">Planes</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Probalo gratis. Sin tarjeta.</h2>
           <p className="text-[#888] mb-3">Todos los planes pagos incluyen <span className="text-white font-semibold">7 días de prueba gratis</span> — cancelás cuando quieras.</p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20">
-            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-sm text-orange-400 font-medium">Sin tarjeta para el plan Starter — es gratis de por vida</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+            <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse" />
+            <span className="text-sm text-white/50 font-medium">Sin tarjeta para el plan Starter — es gratis de por vida</span>
           </div>
         </FadeIn>
 
@@ -816,7 +823,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
             <FadeIn key={p.id} delay={i * 80}>
               <div className={cn(
                 'relative flex flex-col rounded-2xl border p-6 h-full',
-                p.highlight ? 'border-orange-500/50 bg-orange-500/5' : 'border-[#1e1e1e] bg-[#0d0d0d]',
+                p.highlight ? 'border-white/15 bg-white/4 shadow-[0_0_40px_rgba(255,255,255,0.05),0_0_80px_rgba(255,255,255,0.03)]' : 'border-[#1e1e1e] bg-[#0d0d0d]',
               )}>
                 {p.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -835,7 +842,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
                 <ul className="space-y-2.5 mb-6 flex-1">
                   {p.features.map(f => (
                     <li key={f} className="flex items-start gap-2 text-sm text-[#ccc]">
-                      <Check size={13} className="text-orange-400 flex-shrink-0 mt-0.5" />
+                      <Check size={13} className="text-white/40 flex-shrink-0 mt-0.5" />
                       {f}
                     </li>
                   ))}
@@ -845,8 +852,8 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
                   className={cn(
                     'block text-center py-2.5 rounded-xl text-sm font-semibold transition-all',
                     p.highlight
-                      ? 'bg-orange-600 hover:bg-orange-500 text-white'
-                      : 'border border-[#2e2e2e] text-[#aaa] hover:border-orange-500/40 hover:text-white',
+                      ? 'bg-white hover:bg-[#e5e5e5] text-black'
+                      : 'border border-[#2e2e2e] text-[#aaa] hover:border-white/20 hover:text-white',
                   )}
                 >
                   {p.id === 'starter' ? 'Empezar gratis' : 'Probar 7 días gratis →'}
@@ -858,12 +865,12 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
 
         <FadeIn>
           <div className="max-w-sm mx-auto border border-[#1e1e1e] rounded-2xl p-5 bg-[#0d0d0d] text-center">
-            <Zap size={16} className="text-orange-400 mx-auto mb-2" />
+            <Zap size={16} className="text-white/40 mx-auto mb-2" />
             <p className="text-sm font-semibold text-white mb-1">Pack de créditos adicionales</p>
             <p className="text-xs text-[#666] mb-3">250 créditos · Compra única · No vencen</p>
             <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-[#0f0f0f] border border-[#1e1e1e]">
               <span className="text-sm text-[#ccc]">250 créditos IA</span>
-              <span className="text-sm font-bold text-orange-400">$9.99</span>
+              <span className="text-sm font-bold text-white">$9.99</span>
             </div>
           </div>
         </FadeIn>
@@ -908,7 +915,7 @@ function FAQ() {
     <section id="faq" className="py-24 px-6 bg-[#0f0f0f] border-y border-[#1a1a1a]">
       <div className="max-w-2xl mx-auto">
         <FadeIn className="text-center mb-12">
-          <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">FAQ</p>
+          <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">FAQ</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white">Preguntas frecuentes</h2>
         </FadeIn>
 
@@ -949,14 +956,14 @@ function FinalCTA({ isAuthenticated }: { isAuthenticated: boolean }) {
         <FadeIn>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
             Dejá de adivinar.<br />
-            <span className="text-orange-400">Empezá a simular.</span>
+            <span className="text-white">Empezá a simular.</span>
           </h2>
           <p className="text-[#888] mb-8">
             7 días de prueba gratis en planes pagos. Sin tarjeta para empezar.
           </p>
           <Link
             href={isAuthenticated ? '/dashboard' : '/register'}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base transition-all shadow-lg shadow-orange-950/40"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white hover:bg-[#e5e5e5] text-black font-bold text-base transition-all"
           >
             {isAuthenticated ? 'Ir al dashboard' : 'Crear cuenta gratis'}
             <ArrowRight size={16} />
@@ -1055,18 +1062,20 @@ function Footer() {
 export default function LandingPage({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      <ParticlesBackground />
+      <div className="relative" style={{ zIndex: 1 }}>
       <Navbar isAuthenticated={isAuthenticated} />
       <Hero isAuthenticated={isAuthenticated} />
       <SocialProof />
       <ProblemSolution />
-      <DemoSection />
+      <AIAssistant />
       <Features />
       <HowItWorks />
-      <AIAssistant />
       <Pricing isAuthenticated={isAuthenticated} />
       <FAQ />
       <FinalCTA isAuthenticated={isAuthenticated} />
       <Footer />
+      </div>
     </div>
   )
 }
