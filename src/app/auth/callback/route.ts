@@ -14,8 +14,18 @@ export async function GET(request: NextRequest) {
       ? `https://${forwardedHost}`
       : origin
 
+  // Supabase redirects here with ?error=...&error_description=... when OAuth fails
+  // (e.g. provider not configured, redirect URI mismatch, user cancelled).
+  // Forward the real message so we can diagnose.
+  const oauthError = searchParams.get('error')
+  const oauthErrorDescription = searchParams.get('error_description')
+
   if (!code) {
-    return NextResponse.redirect(`${baseUrl}/login?error=auth_callback_failed`)
+    const msg = oauthErrorDescription || oauthError || 'auth_callback_failed'
+    console.error('[auth/callback] no code received:', { oauthError, oauthErrorDescription })
+    return NextResponse.redirect(
+      `${baseUrl}/login?error=${encodeURIComponent(msg)}`
+    )
   }
 
   // Collect cookies written during the exchange — applied to the final response
