@@ -151,6 +151,23 @@ interface NumberInputProps {
 }
 
 function NumberInput({ value, onChange, min = 0, max, step = 1, prefix, suffix }: NumberInputProps) {
+  // localVal holds the raw string while the user is editing.
+  // null = not editing → show the external value prop.
+  const [localVal, setLocalVal] = useState<string | null>(null)
+
+  const handleBlur = () => {
+    if (localVal === null) return
+    const parsed = parseFloat(localVal)
+    if (!isNaN(parsed)) {
+      const clamped = max != null
+        ? Math.min(max, Math.max(min, parsed))
+        : Math.max(min, parsed)
+      onChange(clamped)
+    }
+    // If empty / invalid → don't call onChange, external value stays unchanged
+    setLocalVal(null)
+  }
+
   return (
     <div className="flex items-center gap-1">
       {prefix && (
@@ -158,14 +175,12 @@ function NumberInput({ value, onChange, min = 0, max, step = 1, prefix, suffix }
       )}
       <input
         type="number"
-        value={value}
+        value={localVal !== null ? localVal : value}
         min={min}
         max={max}
         step={step}
-        onChange={e => {
-          const v = parseFloat(e.target.value)
-          if (!isNaN(v)) onChange(v)
-        }}
+        onChange={e => setLocalVal(e.target.value)}
+        onBlur={handleBlur}
         className="funnel-input text-right font-mono text-sm flex-1"
       />
       {suffix && (
