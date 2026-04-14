@@ -1,9 +1,10 @@
-import { generateText } from 'ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
-// AI Gateway routing — slugs en formato provider/model con puntos
-const SONNET = 'anthropic/claude-sonnet-4.6'
-const HAIKU  = 'anthropic/claude-haiku-4.5'
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+const MODEL_SONNET = 'claude-sonnet-4-20250514'
+const MODEL_HAIKU  = 'claude-haiku-4-5-20251001'
 
 const CREDIT_COSTS: Record<string, number> = {
   chat:            1,
@@ -21,7 +22,7 @@ const FUNNEL_KEYWORDS = [
   'mis ventas', 'mi tráfico', 'mis métricas', 'mi email', 'mis ads', 'mi cpa',
 ]
 
-// ── System prompt (cacheado en Anthropic — 90% de ahorro en tokens de sistema) ──
+// ── System prompt — se cachea con cache_control ephemeral (90% ahorro en tokens de sistema) ──
 const SYSTEM_PROMPT = `Sos el asistente de IA de FunnelLab, un simulador de funnels de marketing. Tu nombre es FunnelLab AI.
 
 Tu rol es ayudar a los usuarios a:
@@ -153,18 +154,34 @@ async function maybeGenerateSummary(
   if (!toSummarize || toSummarize.length < 10) return
 
   try {
-    const { text } = await generateText({
-      model: HAIKU,
-      messages: [
-        ...toSummarize.map((m: { role: string; content: string }) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        { role: 'user' as const, content: 'Resumí esta conversación en 2-3 oraciones: qué funnel se discutió, qué problemas se identificaron, qué cambios se sugirieron, y qué decidió el usuario.' },
-      ],
+    const historyMessages: Anthropic.MessageParam[] = toSummarize.map(
+      (m: { role: string; content: string }) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })
+    )
+    historyMessages.push({
+      role: 'user',
+      content: 'Resumí esta conversación en 2-3 oraciones: qué funnel se discutió, qué problemas se identificaron, qué cambios se sugirieron, y qué decidió el usuario.',
     })
-    await admin.from('ai_chat_summaries').insert({
-      project_id: projectId,
-      summary: text,
-      messages_summarized: 10,
+
+    const summaryResponse = await anthropic.messages.create({
+      model: MODEL_HAIKU,
+      max_tokens: 300,
+      messages: historyMessages,
     })
+
+    const summaryText = summaryResponse.content[0].type === 'text'
+      ? summaryResponse.content[0].text
+      : ''
+
+    if (summaryText) {
+      await admin.from('ai_chat_summaries').insert({
+        project_id: projectId,
+        summary: summaryText,
+        messages_summarized: 10,
+      })
+    }
   } catch {
     // Silenciar — el auto-resumen no es crítico
   }
@@ -244,39 +261,41 @@ export async function POST(req: Request) {
     }
 
     // ── 3. Construir mensajes ──────────────────────────────────────────────────
-    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = []
+    const messages: Anthropic.MessageParam[] = []
 
     if (summaryText) {
       messages.push({ role: 'user', content: `[Resumen de conversación anterior: ${summaryText}]` })
       messages.push({ role: 'assistant', content: 'Entendido, tengo el contexto de nuestra conversación anterior.' })
     }
 
-    // El contexto del funnel va como mensaje de contexto para no invalidar el cache del system prompt
+    // El contexto del funnel va como mensaje de usuario para no invalidar el cache del system prompt
     const includeContext = funnelContext && needsFunnelContext(actionType, message)
     if (includeContext) {
       messages.push({ role: 'user', content: `[Contexto del funnel actual: ${serializeFunnelContext(funnelContext)}]` })
       messages.push({ role: 'assistant', content: 'Entendido, tengo los datos del funnel.' })
     }
 
-    for (const m of recentMessages) messages.push({ role: m.role as 'user' | 'assistant', content: m.content })
+    for (const m of recentMessages) {
+      messages.push({ role: m.role as 'user' | 'assistant', content: m.content })
+    }
     messages.push({ role: 'user', content: message })
 
-    // ── 4. Llamar al modelo vía AI Gateway ────────────────────────────────────
-    const { text: assistantText } = await generateText({
-      model: SONNET,
-      system: SYSTEM_PROMPT,
+    // ── 4. Llamar a Anthropic directamente ───────────────────────────────────
+    // El system prompt se cachea con cache_control ephemeral → ~90% ahorro en tokens de sistema
+    const response = await anthropic.messages.create({
+      model: MODEL_SONNET,
+      max_tokens: 1500,
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_PROMPT,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages,
-      maxOutputTokens: 1500,
-      providerOptions: {
-        anthropic: {
-          // Cache el system prompt — ahorra ~90% en tokens de sistema en llamadas repetidas
-          cacheControl: { type: 'ephemeral' },
-        },
-        gateway: {
-          tags: ['feature:ai-chat', 'app:funnellab'],
-        },
-      },
     })
+
+    const assistantText = response.content[0].type === 'text' ? response.content[0].text : ''
 
     // ── 5. Guardar mensajes ────────────────────────────────────────────────────
     if (projectId) {
