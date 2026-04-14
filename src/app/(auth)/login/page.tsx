@@ -1,15 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-export default function LoginPage() {
-  const router = useRouter()
+// useSearchParams requiere Suspense — lo aislamos en un componente propio
+function CallbackErrorReader({ onError }: { onError: (msg: string) => void }) {
   const searchParams = useSearchParams()
+  useEffect(() => {
+    const callbackError = searchParams.get('error')
+    if (callbackError) {
+      if (callbackError === 'auth_callback_failed') {
+        onError('Error al iniciar sesión con Google. Intentá de nuevo.')
+      } else {
+        onError(`Error de autenticación: ${decodeURIComponent(callbackError)}`)
+      }
+    }
+  }, [searchParams, onError])
+  return null
+}
+
+function LoginForm() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -18,17 +33,6 @@ export default function LoginPage() {
   const [error, setError] = useState('')
 
   const supabase = createClient()
-
-  useEffect(() => {
-    const callbackError = searchParams.get('error')
-    if (callbackError) {
-      if (callbackError === 'auth_callback_failed') {
-        setError('Error al iniciar sesión con Google. Intentá de nuevo.')
-      } else {
-        setError(`Error de autenticación: ${callbackError}`)
-      }
-    }
-  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +67,11 @@ export default function LoginPage() {
 
   return (
     <div className="bg-[#111111] border border-[#2e2e2e] rounded-2xl p-8 shadow-2xl">
+      {/* Lee el error del callback sin bloquear el prerender */}
+      <Suspense>
+        <CallbackErrorReader onError={setError} />
+      </Suspense>
+
       <h1 className="text-2xl font-bold text-white mb-1">Iniciar sesión</h1>
       <p className="text-slate-400 text-sm mb-6">
         ¿No tenés cuenta?{' '}
@@ -169,4 +178,8 @@ export default function LoginPage() {
       </form>
     </div>
   )
+}
+
+export default function LoginPage() {
+  return <LoginForm />
 }
