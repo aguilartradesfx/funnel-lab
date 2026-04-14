@@ -47,9 +47,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[auth/callback] exchangeCodeForSession error:', error.message)
-    return NextResponse.redirect(
-      `${baseUrl}/login?error=${encodeURIComponent(error.message)}`
-    )
+    return NextResponse.redirect(`${baseUrl}/login?error=auth_callback_failed`)
   }
 
   return redirectResponse
