@@ -55,7 +55,8 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20)
+    const handler = () => setScrolled(window.scrollY > 80)
+    handler()
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
@@ -71,13 +72,18 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
       'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
       scrolled
         ? 'bg-[#0f0f0f]/95 backdrop-blur-md border-b border-[#1e1e1e]'
-        : 'bg-transparent',
+        : 'bg-white/90 backdrop-blur-sm border-b border-black/5',
     )}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo — invert on white, normal on dark */}
         <Link href="/" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="FunnelLab" className="h-7 w-auto" />
+          <img
+            src="/logo.png"
+            alt="FunnelLab"
+            className="h-7 w-auto transition-all duration-300"
+            style={{ filter: scrolled ? 'none' : 'brightness(0)' }}
+          />
         </Link>
 
         {/* Desktop links */}
@@ -90,7 +96,10 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
                 e.preventDefault()
                 document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' })
               }}
-              className="text-sm text-[#888] hover:text-white transition-colors"
+              className={cn(
+                'text-sm transition-colors',
+                scrolled ? 'text-[#888] hover:text-white' : 'text-[#555] hover:text-black',
+              )}
             >
               {l.label}
             </a>
@@ -108,12 +117,23 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
             </Link>
           ) : (
             <>
-              <Link href="/login" className="text-sm text-[#888] hover:text-white transition-colors px-3 py-2">
+              <Link
+                href="/login"
+                className={cn(
+                  'text-sm transition-colors px-3 py-2',
+                  scrolled ? 'text-[#888] hover:text-white' : 'text-[#555] hover:text-black',
+                )}
+              >
                 Iniciar sesión
               </Link>
               <Link
                 href="/register"
-                className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition-all"
+                className={cn(
+                  'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
+                  scrolled
+                    ? 'bg-orange-600 hover:bg-orange-500 text-white'
+                    : 'bg-black hover:bg-[#222] text-white',
+                )}
               >
                 Registrarse
               </Link>
@@ -122,20 +142,29 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
 
         {/* Mobile menu button */}
-        <button className="md:hidden p-2 text-[#888]" onClick={() => setMenuOpen(v => !v)}>
+        <button
+          className={cn('md:hidden p-2 transition-colors', scrolled ? 'text-[#888]' : 'text-[#444]')}
+          onClick={() => setMenuOpen(v => !v)}
+        >
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#0f0f0f] border-b border-[#1e1e1e] px-6 py-4 space-y-3">
+        <div className={cn(
+          'md:hidden border-b px-6 py-4 space-y-3',
+          scrolled ? 'bg-[#0f0f0f] border-[#1e1e1e]' : 'bg-white border-black/5',
+        )}>
           {navLinks.map(l => (
             <a
               key={l.label}
               href={l.href}
               onClick={() => { setMenuOpen(false); document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' }) }}
-              className="block text-sm text-[#ccc] hover:text-white py-1"
+              className={cn(
+                'block text-sm py-1 transition-colors',
+                scrolled ? 'text-[#ccc] hover:text-white' : 'text-[#444] hover:text-black',
+              )}
             >
               {l.label}
             </a>
@@ -147,10 +176,16 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
               </Link>
             ) : (
               <>
-                <Link href="/login" className="px-4 py-2 rounded-xl border border-[#1e1e1e] text-[#ccc] text-sm text-center">
+                <Link
+                  href="/login"
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-sm text-center',
+                    scrolled ? 'border border-[#1e1e1e] text-[#ccc]' : 'border border-black/15 text-[#555]',
+                  )}
+                >
                   Iniciar sesión
                 </Link>
-                <Link href="/register" className="px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-semibold text-center">
+                <Link href="/register" className="px-4 py-2 rounded-xl bg-black text-white text-sm font-semibold text-center">
                   Registrarse
                 </Link>
               </>
@@ -381,40 +416,36 @@ function FunnelBuilderMock() {
 
 function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <section className="relative pt-28 pb-0 overflow-hidden">
-      {/* Faint orange glow */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: '-5%', left: '50%', transform: 'translateX(-50%)',
-          width: '900px', height: '500px',
-          background: 'radial-gradient(ellipse, rgba(249,115,22,0.07) 0%, transparent 65%)',
-          filter: 'blur(40px)',
-        }}
-      />
-
-      {/* Text block */}
+    <section
+      className="relative pt-28 pb-0 overflow-hidden"
+      style={{ background: 'linear-gradient(to bottom, #ffffff 0%, #ffffff 42%, #0a0a0a 68%)' }}
+    >
+      {/* Text block — on white */}
       <div className="relative max-w-4xl mx-auto text-center px-6 mb-14">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-orange-500/25 bg-orange-500/5 text-xs font-medium text-orange-400 mb-7">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-black/10 bg-black/[0.04] text-xs font-medium text-orange-600 mb-7">
           <Zap size={11} />
           Simulá, predecí y optimizá con IA
         </div>
 
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-[1.08] mb-6 tracking-tight">
+        {/* Title */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-black leading-[1.08] mb-6 tracking-tight">
           Simulá tu funnel<br />
           antes de{' '}
-          <span className="text-orange-400">gastar un centavo</span>
+          <span className="text-orange-500">gastar un centavo</span>
         </h1>
 
-        <p className="text-lg md:text-xl text-[#777] max-w-2xl mx-auto mb-10 leading-relaxed">
-          Construí visualmente cualquier funnel de marketing, predecí conversiones
-          y detectá cuellos de botella antes de invertir un peso.
+        {/* Subtitle */}
+        <p className="text-lg md:text-xl text-[#555] max-w-2xl mx-auto mb-10 leading-relaxed">
+          Para marketers, agencias y emprendedores: construí funnels visualmente,
+          predecí conversiones y detectá cuellos de botella antes de invertir un peso.
         </p>
 
+        {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href={isAuthenticated ? '/dashboard' : '/register'}
-            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-base transition-all"
+            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-black hover:bg-[#222] text-white font-semibold text-base transition-all"
           >
             {isAuthenticated ? 'Ir al dashboard' : 'Empezar gratis'}
             <ArrowRight size={16} />
@@ -422,19 +453,19 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
           <a
             href="#demo"
             onClick={e => { e.preventDefault(); document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' }) }}
-            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-[#222] hover:border-[#333] text-[#777] hover:text-white font-semibold text-base transition-all"
+            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-black/15 hover:border-black/30 text-[#555] hover:text-black font-semibold text-base transition-all"
           >
             Ver demo en vivo
           </a>
         </div>
       </div>
 
-      {/* App mock — fades to bg at bottom */}
+      {/* App mock — dark, fades out at bottom into the dark gradient */}
       <div
         className="relative max-w-5xl mx-auto px-6"
         style={{
-          maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)',
         }}
       >
         <FunnelBuilderMock />
@@ -451,7 +482,7 @@ function SocialProof() {
     <section className="border-y border-[#1a1a1a] bg-[#0f0f0f] py-6 px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <p className="text-center text-xs text-[#555] uppercase tracking-widest mb-5">
-          Diseñado para marketers, agencias y emprendedores
+          Diseñado para marketers, agencias digitales y emprendedores
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {platforms.map(p => (
@@ -492,7 +523,7 @@ function ProblemSolution() {
         <FadeIn className="text-center mb-16">
           <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">El problema</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-            ¿Cuánto dinero perdiste lanzando<br className="hidden md:block" /> funnels a ciegas?
+            ¿Cuánto dinero perdiste lanzando funnels<br className="hidden md:block" /> sin datos que los respaldaran?
           </h2>
         </FadeIn>
 
@@ -685,8 +716,12 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-16">
           <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Planes</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Sin sorpresas. Sin compromisos.</h2>
-          <p className="text-[#888]">7 días de prueba gratis en planes pagos. Sin tarjeta para el plan Starter.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Probalo gratis. Sin tarjeta.</h2>
+          <p className="text-[#888] mb-3">Todos los planes pagos incluyen <span className="text-white font-semibold">7 días de prueba gratis</span> — cancelás cuando quieras.</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20">
+            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+            <span className="text-sm text-orange-400 font-medium">Sin tarjeta para el plan Starter — es gratis de por vida</span>
+          </div>
         </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -724,10 +759,10 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
                     'block text-center py-2.5 rounded-xl text-sm font-semibold transition-all',
                     p.highlight
                       ? 'bg-orange-600 hover:bg-orange-500 text-white'
-                      : 'border border-[#3e3e3e] text-slate-200 hover:border-orange-500/50 hover:text-white',
+                      : 'border border-[#2e2e2e] text-[#aaa] hover:border-orange-500/40 hover:text-white',
                   )}
                 >
-                  Empezar
+                  {p.id === 'starter' ? 'Empezar gratis' : 'Probar 7 días gratis →'}
                 </Link>
               </div>
             </FadeIn>
@@ -771,7 +806,7 @@ const FAQS = [
   },
   {
     q: '¿Funciona para mi tipo de negocio?',
-    a: 'FunnelLab tiene más de 70 tipos de nodos que cubren e-commerce, SaaS, agencias, negocios locales, infoproductos, servicios B2B y más. Si tenés un funnel de marketing, FunnelLab puede simularlo.',
+    a: 'FunnelLab tiene más de 70 tipos de nodos que cubren e-commerce, SaaS, agencias con clientes, negocios locales, infoproductos, servicios B2B y más. Si tenés un funnel, FunnelLab puede simularlo.',
   },
   {
     q: '¿Tiene prueba gratuita?',
