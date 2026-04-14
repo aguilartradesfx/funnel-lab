@@ -55,8 +55,7 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 80)
-    handler()
+    const handler = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
@@ -70,124 +69,60 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <nav className={cn(
       'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-      scrolled
-        ? 'bg-[#0f0f0f]/95 backdrop-blur-md border-b border-[#1e1e1e]'
-        : 'bg-white/90 backdrop-blur-sm border-b border-black/5',
+      scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-[#1e1e1e]' : 'bg-transparent',
     )}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo — invert on white, normal on dark */}
         <Link href="/" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.png"
-            alt="FunnelLab"
-            className="h-7 w-auto transition-all duration-300"
-            style={{ filter: scrolled ? 'none' : 'brightness(0)' }}
-          />
+          <img src="/logo.png" alt="FunnelLab" className="h-7 w-auto" />
         </Link>
 
-        {/* Desktop links */}
         <div className="hidden md:flex items-center gap-6">
           {navLinks.map(l => (
-            <a
-              key={l.label}
-              href={l.href}
-              onClick={e => {
-                e.preventDefault()
-                document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' })
-              }}
-              className={cn(
-                'text-sm transition-colors',
-                scrolled ? 'text-[#888] hover:text-white' : 'text-[#555] hover:text-black',
-              )}
-            >
-              {l.label}
-            </a>
+            <a key={l.label} href={l.href}
+              onClick={e => { e.preventDefault(); document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' }) }}
+              className="text-sm text-[#666] hover:text-white transition-colors"
+            >{l.label}</a>
           ))}
         </div>
 
-        {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition-all"
-            >
+            <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#e5e5e5] text-black text-sm font-semibold transition-all">
               Ir al dashboard <ArrowRight size={14} />
             </Link>
           ) : (
             <>
-              <Link
-                href="/login"
-                className={cn(
-                  'text-sm transition-colors px-3 py-2',
-                  scrolled ? 'text-[#888] hover:text-white' : 'text-[#555] hover:text-black',
-                )}
-              >
+              <Link href="/login" className="text-sm text-[#666] hover:text-white transition-colors px-3 py-2">
                 Iniciar sesión
               </Link>
-              <Link
-                href="/register"
-                className={cn(
-                  'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-                  scrolled
-                    ? 'bg-orange-600 hover:bg-orange-500 text-white'
-                    : 'bg-black hover:bg-[#222] text-white',
-                )}
-              >
+              <Link href="/register" className="px-4 py-2 rounded-xl bg-white hover:bg-[#e5e5e5] text-black text-sm font-semibold transition-all">
                 Registrarse
               </Link>
             </>
           )}
         </div>
 
-        {/* Mobile menu button */}
-        <button
-          className={cn('md:hidden p-2 transition-colors', scrolled ? 'text-[#888]' : 'text-[#444]')}
-          onClick={() => setMenuOpen(v => !v)}
-        >
+        <button className="md:hidden p-2 text-[#666]" onClick={() => setMenuOpen(v => !v)}>
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Mobile menu */}
       {menuOpen && (
-        <div className={cn(
-          'md:hidden border-b px-6 py-4 space-y-3',
-          scrolled ? 'bg-[#0f0f0f] border-[#1e1e1e]' : 'bg-white border-black/5',
-        )}>
+        <div className="md:hidden bg-[#050505] border-b border-[#1e1e1e] px-6 py-4 space-y-3">
           {navLinks.map(l => (
-            <a
-              key={l.label}
-              href={l.href}
+            <a key={l.label} href={l.href}
               onClick={() => { setMenuOpen(false); document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' }) }}
-              className={cn(
-                'block text-sm py-1 transition-colors',
-                scrolled ? 'text-[#ccc] hover:text-white' : 'text-[#444] hover:text-black',
-              )}
-            >
-              {l.label}
-            </a>
+              className="block text-sm text-[#aaa] hover:text-white py-1"
+            >{l.label}</a>
           ))}
           <div className="pt-2 flex flex-col gap-2">
             {isAuthenticated ? (
-              <Link href="/dashboard" className="px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-semibold text-center">
-                Ir al dashboard
-              </Link>
+              <Link href="/dashboard" className="px-4 py-2 rounded-xl bg-white text-black text-sm font-semibold text-center">Ir al dashboard</Link>
             ) : (
               <>
-                <Link
-                  href="/login"
-                  className={cn(
-                    'px-4 py-2 rounded-xl text-sm text-center',
-                    scrolled ? 'border border-[#1e1e1e] text-[#ccc]' : 'border border-black/15 text-[#555]',
-                  )}
-                >
-                  Iniciar sesión
-                </Link>
-                <Link href="/register" className="px-4 py-2 rounded-xl bg-black text-white text-sm font-semibold text-center">
-                  Registrarse
-                </Link>
+                <Link href="/login" className="px-4 py-2 rounded-xl border border-[#1e1e1e] text-[#aaa] text-sm text-center">Iniciar sesión</Link>
+                <Link href="/register" className="px-4 py-2 rounded-xl bg-white text-black text-sm font-semibold text-center">Registrarse</Link>
               </>
             )}
           </div>
@@ -416,36 +351,38 @@ function FunnelBuilderMock() {
 
 function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <section
-      className="relative pt-28 pb-0 overflow-hidden"
-      style={{ background: 'linear-gradient(to bottom, #ffffff 0%, #ffffff 42%, #0a0a0a 68%)' }}
-    >
-      {/* Text block — on white */}
-      <div className="relative max-w-4xl mx-auto text-center px-6 mb-14">
+    <section className="relative pt-28 pb-0 overflow-hidden bg-[#030303]">
+      {/* Subtle white radial at top — gives depth without color */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%)',
+      }} />
+
+      {/* Text block */}
+      <div className="relative max-w-4xl mx-auto text-center px-6 mb-16">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-black/10 bg-black/[0.04] text-xs font-medium text-orange-600 mb-7">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-white/60 mb-7">
           <Zap size={11} />
           Simulá, predecí y optimizá con IA
         </div>
 
-        {/* Title */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-black leading-[1.08] mb-6 tracking-tight">
+        {/* Title — pure white, maximum contrast */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-[1.06] mb-6 tracking-tight">
           Simulá tu funnel<br />
-          antes de{' '}
-          <span className="text-orange-500">gastar un centavo</span>
+          antes de gastar<br />
+          <span className="text-orange-500">un centavo</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="text-lg md:text-xl text-[#555] max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed">
           Para marketers, agencias y emprendedores: construí funnels visualmente,
-          predecí conversiones y detectá cuellos de botella antes de invertir un peso.
+          predecí conversiones y detectá cuellos de botella antes de invertir.
         </p>
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href={isAuthenticated ? '/dashboard' : '/register'}
-            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-black hover:bg-[#222] text-white font-semibold text-base transition-all"
+            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white hover:bg-[#e8e8e8] text-black font-semibold text-base transition-all"
           >
             {isAuthenticated ? 'Ir al dashboard' : 'Empezar gratis'}
             <ArrowRight size={16} />
@@ -453,14 +390,14 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
           <a
             href="#demo"
             onClick={e => { e.preventDefault(); document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' }) }}
-            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-black/15 hover:border-black/30 text-[#555] hover:text-black font-semibold text-base transition-all"
+            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 hover:border-white/25 text-white/50 hover:text-white font-semibold text-base transition-all"
           >
             Ver demo en vivo
           </a>
         </div>
       </div>
 
-      {/* App mock — dark, fades out at bottom into the dark gradient */}
+      {/* App mock — fades into bg at bottom */}
       <div
         className="relative max-w-5xl mx-auto px-6"
         style={{
@@ -673,6 +610,156 @@ function HowItWorks() {
               </div>
             </FadeIn>
           ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── AI Chat section ─────────────────────────────────────────────────────────
+
+function AIAssistant() {
+  return (
+    <section className="py-24 px-6 bg-[#030303]">
+      <div className="max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+          {/* Left: copy */}
+          <FadeIn>
+            <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">Asistente IA</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-5 leading-tight">
+              Tu copiloto de<br />marketing con IA
+            </h2>
+            <p className="text-white/40 leading-relaxed mb-8">
+              Describí tu negocio y objetivos. La IA te sugiere la estructura del funnel,
+              proyecta revenue y ROAS, detecta cuellos de botella y puede generar el
+              funnel completo en el editor con un solo mensaje.
+            </p>
+            <ul className="space-y-3">
+              {[
+                'Sugiere el tipo de funnel según tu modelo de negocio',
+                'Proyecta revenue, ROAS y conversiones con datos reales',
+                'Detecta cuellos de botella antes de que cuesten dinero',
+                'Genera el funnel completo listo para simular',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-white/50">
+                  <Check size={13} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </FadeIn>
+
+          {/* Right: chat window */}
+          <FadeIn delay={100}>
+            <div className="rounded-2xl border border-white/8 bg-[#0d0d0d] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
+
+              {/* Chat header */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/6">
+                <div className="w-7 h-7 rounded-lg bg-orange-500/15 border border-orange-500/25 flex items-center justify-center flex-shrink-0">
+                  <Brain size={13} className="text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Asistente FunnelLab</p>
+                  <p className="text-[10px] text-white/30">Especializado en funnels de marketing</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] text-white/30">En línea</span>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="p-4 space-y-4">
+
+                {/* User */}
+                <div className="flex justify-end">
+                  <div className="bg-white/8 text-white/70 text-sm rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
+                    Quiero lanzar un curso online de $197. ¿Qué funnel me recomendás?
+                  </div>
+                </div>
+
+                {/* AI response 1 */}
+                <div className="flex gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Brain size={11} className="text-orange-400" />
+                  </div>
+                  <div className="bg-[#111] border border-white/6 text-white/60 text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[88%] space-y-3">
+                    <p>Para un infoproducto de $197 con tráfico frío, un <span className="text-white font-medium">Funnel VSL o Webinar</span> convierte mucho mejor que ir directo al checkout.</p>
+                    <div className="bg-black/40 rounded-xl p-3 border border-white/6 font-mono text-[11px] text-white/40 leading-relaxed space-y-0.5">
+                      <p><span className="text-orange-400/70">◈</span> FB/IG Ads — $800/mes</p>
+                      <p className="pl-3 text-white/25">↓</p>
+                      <p className="pl-3"><span className="text-white/50">▣</span> Landing de inscripción</p>
+                      <p className="pl-6 text-white/25">↓</p>
+                      <p className="pl-6"><span className="text-white/50">✉</span> Email sequence (3 mails)</p>
+                      <p className="pl-9 text-white/25">↓</p>
+                      <p className="pl-9"><span className="text-white/50">▶</span> Webinar / VSL</p>
+                      <p className="pl-12 text-white/25">↓</p>
+                      <p className="pl-12"><span className="text-white/50">◎</span> Checkout $197</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { val: '~270', lbl: 'Registros', sub: '30% conv.' },
+                        { val: '22–36', lbl: 'Ventas', sub: 'ROAS 5–9x' },
+                        { val: '$4,300+', lbl: 'Revenue', sub: 'estimado/mes' },
+                      ].map(i => (
+                        <div key={i.lbl} className="bg-black/30 rounded-lg p-2 text-center border border-white/5">
+                          <p className="text-sm font-bold text-white">{i.val}</p>
+                          <p className="text-[9px] text-white/40">{i.lbl}</p>
+                          <p className="text-[9px] text-white/25">{i.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-white/40">¿Querés que genere el funnel con $800 de presupuesto o lo ajustamos?</p>
+                  </div>
+                </div>
+
+                {/* User */}
+                <div className="flex justify-end">
+                  <div className="bg-white/8 text-white/70 text-sm rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
+                    Generalo con $1,200 de presupuesto.
+                  </div>
+                </div>
+
+                {/* AI response 2 — result */}
+                <div className="flex gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Brain size={11} className="text-orange-400" />
+                  </div>
+                  <div className="bg-[#111] border border-white/6 text-white/60 text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[88%] space-y-3">
+                    <p>Listo. Creé tu funnel en el editor:</p>
+                    <div className="bg-black/40 rounded-xl border border-orange-500/20 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-semibold text-white">Webinar $197 — FB/IG Ads</span>
+                      </div>
+                      {[
+                        { label: 'Inversión mensual', value: '$1,200' },
+                        { label: 'Revenue proyectado', value: '$8,640/mes' },
+                        { label: 'ROAS estimado', value: '7.2x' },
+                        { label: 'Nodos creados', value: '5 nodos' },
+                      ].map(item => (
+                        <div key={item.label} className="flex justify-between text-xs border-t border-white/5 pt-1.5">
+                          <span className="text-white/35">{item.label}</span>
+                          <span className="text-white font-medium">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Input */}
+              <div className="border-t border-white/6 px-4 py-3">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-black/40 border border-white/8">
+                  <span className="text-xs text-white/20 flex-1">Describí tu negocio o pedile que analice tu funnel...</span>
+                  <div className="w-6 h-6 rounded-lg bg-orange-600 flex items-center justify-center flex-shrink-0">
+                    <ArrowRight size={11} className="text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
         </div>
       </div>
     </section>
@@ -975,6 +1062,7 @@ export default function LandingPage({ isAuthenticated }: { isAuthenticated: bool
       <DemoSection />
       <Features />
       <HowItWorks />
+      <AIAssistant />
       <Pricing isAuthenticated={isAuthenticated} />
       <FAQ />
       <FinalCTA isAuthenticated={isAuthenticated} />
