@@ -22,12 +22,12 @@ function generateReportHTML(run: SimRun, logoUrl: string): string {
     const dash = Math.min(Math.max(pct, 0), 1) * circ
     const gap = circ - dash
     return `<svg width="90" height="90" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="45" cy="45" r="${radius}" fill="none" stroke="#efefef" stroke-width="7"/>
+      <circle cx="45" cy="45" r="${radius}" fill="none" stroke="#222" stroke-width="7"/>
       <circle cx="45" cy="45" r="${radius}" fill="none" stroke="${color}" stroke-width="7"
         stroke-dasharray="${dash.toFixed(1)} ${gap.toFixed(1)}"
         stroke-linecap="round"
         transform="rotate(-90 45 45)"/>
-      <text x="45" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#111"
+      <text x="45" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#fff"
         font-family="-apple-system,BlinkMacSystemFont,sans-serif">${val}</text>
     </svg>`
   }
@@ -37,10 +37,10 @@ function generateReportHTML(run: SimRun, logoUrl: string): string {
     const pct = max > 0 ? Math.min((val / max) * 100, 100) : 0
     return `<div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-        <span style="font-size:11px;color:#6b7280;font-weight:500">${label}</span>
-        <span style="font-size:13px;font-weight:700;color:#111">${formatted}</span>
+        <span style="font-size:11px;color:#666;font-weight:500">${label}</span>
+        <span style="font-size:13px;font-weight:700;color:#fff">${formatted}</span>
       </div>
-      <div style="background:#f3f4f6;border-radius:6px;height:10px;overflow:hidden">
+      <div style="background:#1f1f1f;border-radius:6px;height:10px;overflow:hidden">
         <div style="width:${pct.toFixed(1)}%;background:${color};height:100%;border-radius:6px"></div>
       </div>
     </div>`
@@ -63,15 +63,15 @@ function generateReportHTML(run: SimRun, logoUrl: string): string {
   <title>Reporte — ${run.projectName}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; background: #f3f4f6; }
-    .page { max-width: 800px; margin: 0 auto; background: #fff; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e5e7eb; background: #0a0a0a; }
+    .page { max-width: 800px; margin: 0 auto; background: #0a0a0a; }
 
     /* Header */
-    .hdr { background: #0a0a0a; padding: 26px 36px 22px; display: flex; align-items: center; justify-content: space-between; }
+    .hdr { background: #000; padding: 26px 36px 22px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1f1f1f; }
     .hdr-logo { height: 26px; width: auto; }
     .hdr-right { text-align: right; }
     .hdr-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 3px; }
-    .hdr-meta { font-size: 11px; color: #777; }
+    .hdr-meta { font-size: 11px; color: #555; }
     .hdr-bar { height: 3px; background: linear-gradient(90deg, #f97316 0%, #ea580c 100%); }
 
     /* Body */
@@ -80,38 +80,38 @@ function generateReportHTML(run: SimRun, logoUrl: string): string {
     .s-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #f97316; margin-bottom: 14px; }
 
     /* Donut cards row */
-    .donuts { display: flex; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-    .d-card { flex: 1; padding: 18px 12px 14px; text-align: center; border-right: 1px solid #e5e7eb; background: #fafafa; }
+    .donuts { display: flex; border: 1px solid #1f1f1f; border-radius: 12px; overflow: hidden; }
+    .d-card { flex: 1; padding: 18px 12px 14px; text-align: center; border-right: 1px solid #1f1f1f; background: #111; }
     .d-card:last-child { border-right: none; }
-    .d-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 8px; }
+    .d-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #555; margin-bottom: 8px; }
     .d-sub { font-size: 10px; font-weight: 600; margin-top: 5px; }
-    .green { color: #16a34a; } .red { color: #dc2626; } .orange { color: #f97316; } .indigo { color: #6366f1; }
+    .green { color: #4ade80; } .red { color: #f87171; } .orange { color: #f97316; } .indigo { color: #818cf8; }
 
     /* Metric cards grid */
     .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .mc { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
-    .mc-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; font-weight: 600; margin-bottom: 6px; }
-    .mc-val { font-size: 22px; font-weight: 800; color: #111; font-variant-numeric: tabular-nums; line-height: 1; }
-    .mc-sub { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+    .mc { background: #111; border: 1px solid #1f1f1f; border-radius: 10px; padding: 14px 16px; }
+    .mc-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #555; font-weight: 600; margin-bottom: 6px; }
+    .mc-val { font-size: 22px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+    .mc-sub { font-size: 10px; color: #555; margin-top: 4px; }
 
     /* Bars */
-    .bars-box { border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px 24px; background: #fafafa; }
-    .bars-footer { display: flex; gap: 24px; margin-top: 6px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
-    .bars-footer span { font-size: 10px; color: #9ca3af; }
+    .bars-box { border: 1px solid #1f1f1f; border-radius: 12px; padding: 20px 24px; background: #111; }
+    .bars-footer { display: flex; gap: 24px; margin-top: 6px; padding-top: 12px; border-top: 1px solid #1a1a1a; }
+    .bars-footer span { font-size: 10px; color: #555; }
 
     /* Break-even */
-    .be-box { display: flex; align-items: center; gap: 20px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 22px; background: #fafafa; }
-    .be-text-title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 4px; }
-    .be-text-sub { font-size: 11px; color: #6b7280; }
+    .be-box { display: flex; align-items: center; gap: 20px; border: 1px solid #1f1f1f; border-radius: 12px; padding: 16px 22px; background: #111; }
+    .be-text-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .be-text-sub { font-size: 11px; color: #777; }
 
     /* Footer */
-    .ftr { border-top: 1px solid #f0f0f0; padding: 12px 36px; display: flex; align-items: center; justify-content: space-between; background: #fafafa; }
-    .ftr-brand { font-size: 10px; color: #9ca3af; }
-    .ftr-logo { height: 16px; opacity: 0.35; }
+    .ftr { border-top: 1px solid #1a1a1a; padding: 12px 36px; display: flex; align-items: center; justify-content: space-between; background: #000; }
+    .ftr-brand { font-size: 10px; color: #444; }
+    .ftr-logo { height: 16px; opacity: 0.3; }
 
     @media print {
-      body { background: #fff; }
-      .page { max-width: 100%; box-shadow: none; }
+      body { background: #0a0a0a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { max-width: 100%; }
       .body { padding: 18px 24px; }
       .hdr { padding: 18px 24px; }
     }
@@ -196,12 +196,12 @@ function generateReportHTML(run: SimRun, logoUrl: string): string {
       <div class="s-title">Punto de equilibrio</div>
       <div class="be-box">
         <svg width="68" height="68" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-          <circle cx="34" cy="34" r="26" fill="none" stroke="#e5e7eb" stroke-width="6"/>
+          <circle cx="34" cy="34" r="26" fill="none" stroke="#222" stroke-width="6"/>
           <circle cx="34" cy="34" r="26" fill="none" stroke="#f97316" stroke-width="6"
             stroke-dasharray="${beDash.toFixed(1)} ${(beCirc - beDash).toFixed(1)}"
             stroke-linecap="round"
             transform="rotate(-90 34 34)"/>
-          <text x="34" y="38" text-anchor="middle" font-size="11" font-weight="700" fill="#111"
+          <text x="34" y="38" text-anchor="middle" font-size="11" font-weight="700" fill="#fff"
             font-family="-apple-system,sans-serif">${Math.round(bePct * 100)}%</text>
         </svg>
         <div>
@@ -218,7 +218,7 @@ function generateReportHTML(run: SimRun, logoUrl: string): string {
 
   <!-- Footer -->
   <div class="ftr">
-    <span class="ftr-brand">Generado con FunnelLab · funnellab.io</span>
+    <span class="ftr-brand">Generado con Funnel Labs · funnellabs.bralto.io</span>
     <img src="${logoUrl}" class="ftr-logo" alt="" onerror="this.style.display='none'"/>
   </div>
 
