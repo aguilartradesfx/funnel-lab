@@ -1,7 +1,13 @@
 import LegalLayout from '@/components/legal/LegalLayout'
 
-export const metadata = {
-  title: 'Términos de servicio · Funnel Labs',
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Términos de servicio — FunnelLab',
+  description: 'Términos y condiciones de uso de FunnelLab, simulador de funnels de marketing.',
+  alternates: {
+    canonical: 'https://funnellabs.bralto.io/terms',
+  },
 }
 
 export default function TermsPage() {

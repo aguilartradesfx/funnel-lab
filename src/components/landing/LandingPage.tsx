@@ -880,6 +880,99 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
   )
 }
 
+// ─── ¿Qué es FunnelLab? ───────────────────────────────────────────────────────
+
+function WhatIsFunnelLab() {
+  const audience = [
+    { icon: '🚀', label: 'Emprendedores que quieren validar su idea antes de invertir' },
+    { icon: '📊', label: 'Marketers que necesitan justificar presupuestos con datos' },
+    { icon: '🏢', label: 'Agencias que presentan estrategias a clientes con proyecciones reales' },
+    { icon: '💼', label: 'Equipos de ventas que quieren optimizar su pipeline' },
+  ]
+
+  const cases = [
+    {
+      tag: 'Restaurante',
+      desc: 'Simuló su funnel de reservas con Google Ads y descubrió que agregar un agente de WhatsApp duplicaba sus reservas sin aumentar el presupuesto.',
+    },
+    {
+      tag: 'Agencia',
+      desc: 'Presentó a su cliente tres escenarios diferentes con proyecciones de ROI y cerró un contrato de $5,000/mes.',
+    },
+    {
+      tag: 'Coach',
+      desc: 'Simuló su funnel de webinar y detectó que su tasa de asistencia estaba 15% debajo del promedio — la corrigió y triplicó sus ventas.',
+    },
+  ]
+
+  return (
+    <section className="py-24 px-6 bg-[#0a0a0a]">
+      <div className="max-w-5xl mx-auto">
+        <FadeIn className="text-center mb-16">
+          <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">¿Qué es FunnelLab?</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Predecí resultados antes de gastar<br className="hidden md:block" /> un solo dólar en publicidad
+          </h2>
+          <p className="text-[#888] text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            FunnelLab es un simulador de funnels de marketing que te permite mapear, simular y optimizar tu
+            embudo de ventas completo antes de gastar. En vez de lanzar campañas a ciegas, podés predecir
+            cuántos leads, clientes y ventas vas a generar con diferentes estrategias — y elegir la más
+            rentable antes de ejecutar.
+          </p>
+        </FadeIn>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+          <FadeIn>
+            <div className="p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full">
+              <h3 className="text-white font-semibold text-base mb-5">¿Para quién es?</h3>
+              <ul className="space-y-3">
+                {audience.map((item) => (
+                  <li key={item.label} className="flex items-start gap-3 text-sm text-[#aaa] leading-relaxed">
+                    <span className="text-base flex-shrink-0 mt-0.5">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={100}>
+            <div className="p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full">
+              <h3 className="text-white font-semibold text-base mb-5">¿Qué podés lograr?</h3>
+              <ul className="space-y-3">
+                {[
+                  'Saber exactamente cuánto vas a ganar antes de gastar.',
+                  'Identificar el cuello de botella que está matando tus conversiones.',
+                  'Comparar escenarios con números reales.',
+                  'Usar IA para que analice tu funnel y te diga dónde mejorar.',
+                ].map((text) => (
+                  <li key={text} className="flex items-start gap-3 text-sm text-[#aaa] leading-relaxed">
+                    <Check className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <span>{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </FadeIn>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {cases.map((c, i) => (
+            <FadeIn key={c.tag} delay={i * 100}>
+              <div className="p-5 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d]">
+                <span className="inline-block px-2 py-0.5 rounded-full border border-orange-500/30 bg-orange-500/5 text-[10px] font-medium text-orange-400 mb-3">
+                  {c.tag}
+                </span>
+                <p className="text-sm text-[#888] leading-relaxed">{c.desc}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQS = [
@@ -1072,6 +1165,7 @@ export default function LandingPage({ isAuthenticated }: { isAuthenticated: bool
       <AIAssistant />
       <Features />
       <HowItWorks />
+      <WhatIsFunnelLab />
       <Pricing isAuthenticated={isAuthenticated} />
       <FAQ />
       <FinalCTA isAuthenticated={isAuthenticated} />

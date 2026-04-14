@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /project
+Disallow: /onboarding
+Disallow: /api
+Disallow: /auth
+
+Sitemap: https://funnellabs.bralto.io/sitemap.xml

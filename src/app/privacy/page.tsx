@@ -1,7 +1,13 @@
 import LegalLayout from '@/components/legal/LegalLayout'
 
-export const metadata = {
-  title: 'Política de privacidad · Funnel Labs',
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Política de privacidad — FunnelLab',
+  description: 'Cómo FunnelLab recopila, usa y protege tu información personal.',
+  alternates: {
+    canonical: 'https://funnellabs.bralto.io/privacy',
+  },
 }
 
 export default function PrivacyPage() {

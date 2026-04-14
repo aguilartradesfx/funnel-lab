@@ -1,5 +1,19 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import PricingClient from './PricingClient'
+
+export const metadata: Metadata = {
+  title: 'Planes y precios — FunnelLab',
+  description: 'Elegí el plan ideal para tu negocio. Desde $6.99/mes. Simulá funnels, usá IA para optimizar, y colaborá con tu equipo. 7 días de prueba gratis.',
+  alternates: {
+    canonical: 'https://funnellabs.bralto.io/pricing',
+  },
+  openGraph: {
+    url: 'https://funnellabs.bralto.io/pricing',
+    title: 'Planes y precios — FunnelLab',
+    description: 'Elegí el plan ideal para tu negocio. Desde $6.99/mes. Simulá funnels, usá IA para optimizar, y colaborá con tu equipo. 7 días de prueba gratis.',
+  },
+}
 
 export default async function PricingPage() {
   const supabase = await createClient()
