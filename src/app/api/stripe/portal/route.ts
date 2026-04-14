@@ -1,5 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { stripe, APP_URL } from '@/lib/stripe'
+import { getStripe, APP_URL } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'No tenés una suscripción activa para administrar' }, { status: 400 })
   }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await getStripe().billingPortal.sessions.create({
     customer: plan.stripe_customer_id,
     return_url: `${APP_URL}/dashboard`,
   })

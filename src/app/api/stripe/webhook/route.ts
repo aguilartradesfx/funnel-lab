@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { stripe, PRICE_TO_PLAN } from '@/lib/stripe'
+import { getStripe, PRICE_TO_PLAN } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch {
     return Response.json({ error: 'Firma inválida' }, { status: 400 })
   }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
         } else if (session.mode === 'subscription' && session.subscription) {
           // Guardar stripe_customer_id y marcar trial si aplica
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+          const subscription = await getStripe().subscriptions.retrieve(session.subscription as string)
           const hadTrial = subscription.status === 'trialing'
 
           await admin.from('user_plans')
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
         const customerId = invoice.customer as string
         if (!subscriptionId) break
 
-        const sub = await stripe.subscriptions.retrieve(subscriptionId)
+        const sub = await getStripe().subscriptions.retrieve(subscriptionId)
         const period = getSubPeriod(sub)
 
         const { data: userPlan } = await admin

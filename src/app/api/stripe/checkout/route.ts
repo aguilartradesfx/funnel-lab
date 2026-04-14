@@ -1,5 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { stripe, PRICES, PRICE_TO_PLAN, APP_URL } from '@/lib/stripe'
+import { getStripe, PRICES, PRICE_TO_PLAN, APP_URL } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   let stripeCustomerId: string = plan?.stripe_customer_id ?? ''
 
   if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: user.email!,
       name: profile?.full_name ?? undefined,
       metadata: { userId: user.id },
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   if (isCreditPack) {
     // Pack de créditos — pago único
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
       mode: 'payment',
       line_items: [{ price: priceId, quantity: 1 }],
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   // Suscripción — dar trial solo si nunca tuvo uno
   const givesTrial = !plan?.has_had_trial && !plan?.stripe_subscription_id
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     customer: stripeCustomerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],

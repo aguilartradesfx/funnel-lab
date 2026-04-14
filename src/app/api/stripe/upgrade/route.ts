@@ -1,5 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   // Obtener el item actual de la suscripción
-  const subscription = await stripe.subscriptions.retrieve(plan.stripe_subscription_id)
+  const subscription = await getStripe().subscriptions.retrieve(plan.stripe_subscription_id)
   const itemId = subscription.items.data[0]?.id
 
   if (!itemId) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   // Actualizar con proration
-  await stripe.subscriptions.update(plan.stripe_subscription_id, {
+  await getStripe().subscriptions.update(plan.stripe_subscription_id, {
     items: [{ id: itemId, price: newPriceId }],
     proration_behavior: 'create_prorations',
   })
