@@ -12,19 +12,16 @@ import { Plus } from 'lucide-react'
 import type { FunnelEdgeData } from '@/lib/types'
 import { useFunnelStore } from '@/stores/funnelStore'
 
+const EDGE_COLOR = '#4a4a4a'
+
 const PATH_COLORS = {
-  yes: '#22c55e',
-  no: '#ef4444',
-  default: '#4a4a4a',
+  yes: EDGE_COLOR,
+  no: EDGE_COLOR,
+  default: EDGE_COLOR,
   'branch-0': '#f97316',
   'branch-1': '#6b7280',
   'branch-2': '#4b5563',
   'branch-3': '#374151',
-}
-
-const PATH_LABELS: Record<string, string> = {
-  yes: 'Sí',
-  no: 'No',
 }
 
 // ─── Routing ──────────────────────────────────────────────────────────────
@@ -81,7 +78,6 @@ export default function FunnelEdge({
 
   const pathType = data?.pathType ?? 'default'
   const color = PATH_COLORS[pathType as keyof typeof PATH_COLORS] ?? PATH_COLORS.default
-  const label = PATH_LABELS[pathType]
 
   const [edgePath, labelX, labelY] = smartPath({
     sourceX, sourceY, sourcePosition,
@@ -114,7 +110,7 @@ export default function FunnelEdge({
         fill="none"
         stroke={color}
         strokeWidth={selected ? 1.8 : 1.2}
-        strokeDasharray={pathType === 'no' ? '6 3' : undefined}
+        strokeDasharray={undefined}
         markerEnd={markerEnd}
         style={{
           filter: selected ? `drop-shadow(0 0 3px ${color}60)` : undefined,
@@ -135,32 +131,6 @@ export default function FunnelEdge({
       />
 
       <EdgeLabelRenderer>
-        {/* Label Sí/No — oculto mientras hay hover para no tapar el botón */}
-        {label && !showDelete && (
-          <div
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: 'none',
-              zIndex: 10,
-            }}
-          >
-            <span
-              style={{
-                backgroundColor: color,
-                color: '#fff',
-                fontSize: '10px',
-                fontWeight: 700,
-                padding: '1px 6px',
-                borderRadius: '999px',
-                letterSpacing: '0.05em',
-              }}
-            >
-              {label}
-            </span>
-          </div>
-        )}
-
         {/* Botones hover sobre la línea: + (insertar) y × (eliminar) */}
         {showDelete && (
           <div

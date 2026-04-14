@@ -22,7 +22,7 @@ import {
   StickyNote, Tag, Workflow,
   Leaf,
 } from 'lucide-react'
-import type { FunnelNodeData, FunnelNodeType, SplitConfig, NodeSimResult, TrafficEntryConfig, PaidTrafficConfig, OrganicChannelConfig } from '@/lib/types'
+import type { FunnelNodeData, FunnelNodeType, SplitConfig, NodeSimResult, GlobalSimResults, TrafficEntryConfig, PaidTrafficConfig, OrganicChannelConfig } from '@/lib/types'
 import { NODE_DEFINITIONS, getNodeColor } from '@/lib/nodeDefinitions'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils'
 import { useFunnelStore } from '@/stores/funnelStore'
@@ -74,6 +74,50 @@ function SimPill({ result, nodeType }: { result: NodeSimResult; nodeType: Funnel
           {formatCurrency(result.revenue)}
         </span>
       )}
+    </div>
+  )
+}
+
+// ─── Cuerpo del nodo Resultado (accede a resultados globales) ─────────────
+
+function ResultNodeBody() {
+  const simResults = useFunnelStore(s => s.simResults)
+  const hasSimulated = useFunnelStore(s => s.hasSimulated)
+
+  if (!hasSimulated || !simResults) {
+    return (
+      <p className="text-[11px] text-slate-600 italic text-center">
+        Sin simulación
+      </p>
+    )
+  }
+
+  const r = simResults
+  const isProfit = r.netProfit >= 0
+
+  return (
+    <div className="space-y-1 w-full">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-slate-600">Revenue</span>
+        <span className="text-[11px] font-semibold text-slate-300 tabular-nums font-mono">
+          {formatCurrency(r.totalRevenue)}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-slate-600">Profit</span>
+        <span
+          className="text-[11px] font-bold tabular-nums font-mono"
+          style={{ color: isProfit ? '#22c55e' : '#ef4444' }}
+        >
+          {isProfit ? '+' : ''}{formatCurrency(r.netProfit)}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-slate-600">ROAS</span>
+        <span className="text-[11px] font-semibold text-slate-300 tabular-nums font-mono">
+          {r.roas > 0 ? `${r.roas.toFixed(1)}x` : '—'}
+        </span>
+      </div>
     </div>
   )
 }
@@ -255,7 +299,10 @@ function FunnelNodeComponent({ id, data, selected }: NodeProps<FunnelRFNode>) {
 
         {/* Body — ocupa el espacio restante, contenido centrado */}
         <div className="px-3 py-1.5 flex-1 flex flex-col justify-center overflow-hidden">
-          <NodeMetrics nodeType={nodeType} config={config} />
+          {nodeType === 'result'
+            ? <ResultNodeBody />
+            : <NodeMetrics nodeType={nodeType} config={config} />
+          }
         </div>
       </div>
 
@@ -1088,10 +1135,6 @@ function NodeMetrics({
         <p className="text-[11px] text-slate-400 truncate">
           {(c.text as string) || 'Grupo'}
         </p>
-      )
-    case 'result':
-      return (
-        <p className="text-[11px] text-slate-500 italic">Nodo terminal</p>
       )
     default:
       return null
