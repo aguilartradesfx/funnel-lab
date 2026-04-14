@@ -1,13 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { type CookieOptions } from '@supabase/ssr'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
 
-  // En Vercel el origen interno difiere del dominio público.
-  // Usar x-forwarded-host para construir la URL de redirección correcta.
   const forwardedHost = request.headers.get('x-forwarded-host')
   const isLocalEnv = process.env.NODE_ENV === 'development'
   const baseUrl = isLocalEnv
@@ -20,10 +18,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/login?error=auth_callback_failed`)
   }
 
-  // Crear el redirect PRIMERO para que Supabase pueda escribir la sesión
-  // directamente sobre esta respuesta. El helper de server.ts usa next/headers
-  // y las cookies no quedarían persistidas en el redirect response.
-  const redirectResponse = NextResponse.redirect(`${baseUrl}${next}`)
+  // Collect cookies written during the exchange — applied to the final response
+  // after we know the destination (can't pre-create the redirect response).
+  const cookiesToApply: Array<{ name: string; value: string; options: CookieOptions }> = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,23 +31,48 @@ export async function GET(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // Escribir las cookies de sesión directamente en el redirect response
-          cookiesToSet.forEach(({ name, value, options }) => {
-            redirectResponse.cookies.set(name, value, options)
-          })
+          cookiesToSet.forEach(c => cookiesToApply.push(c))
         },
       },
     }
   )
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-  if (error) {
-    console.error('[auth/callback] exchangeCodeForSession error:', error.message)
+  if (error || !data.user) {
+    console.error('[auth/callback] exchangeCodeForSession error:', error?.message)
     return NextResponse.redirect(
-      `${baseUrl}/login?error=${encodeURIComponent(error.message)}`
+      `${baseUrl}/login?error=${encodeURIComponent(error?.message ?? 'auth_callback_failed')}`
     )
   }
 
-  return redirectResponse
+  // Determine destination based on profile state.
+  // The handle_new_user trigger runs synchronously, so the row already exists.
+  let destination = '/dashboard'
+
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone, onboarding_completed')
+      .eq('id', data.user.id)
+      .single()
+
+    if (!profile?.phone) {
+      destination = '/onboarding/complete-profile'
+    } else if (!profile?.onboarding_completed) {
+      destination = '/onboarding'
+    }
+  } catch (profileErr) {
+    // If profile query fails, send to dashboard — worst case they'll be redirected later
+    console.error('[auth/callback] profile query error:', profileErr)
+  }
+
+  const response = NextResponse.redirect(`${baseUrl}${destination}`)
+
+  // Write all session cookies onto the final redirect response
+  cookiesToApply.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options)
+  })
+
+  return response
 }
