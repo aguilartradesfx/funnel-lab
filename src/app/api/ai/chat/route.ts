@@ -43,6 +43,9 @@ Reglas:
 - Sé conciso. No repitas lo que el usuario ya sabe. Andá al grano.
 - Si te piden generar un funnel, respondé con un bloque JSON dentro de \`\`\`json que el sistema pueda parsear
 - Cuando el usuario te pida que crees, armes o implementes un funnel en el canvas (frases como "armame el funnel", "crealo", "ponelo en el canvas", "implementá la estrategia", "hacelo", "generalo"), SIEMPRE respondé con el JSON del funnel dentro de \`\`\`json para que el sistema lo cree automáticamente. No le digas al usuario que lo haga manualmente.
+- Cuando quieras destacar métricas proyectadas clave (máximo 3-4 cifras), usá esta sintaxis en una línea separada: > valor | label && valor | label && valor | label
+  Ejemplo: > ~270 | leads/mes && 22-36 | días de setup && $4,300+ | revenue/mes
+  Usala al final de una recomendación o análisis para resumir el impacto con números concretos.
 
 Benchmarks de referencia:
 - Landing page conversión: 20-40% (buena), 10-20% (promedio), <10% (mala)
@@ -56,7 +59,167 @@ Benchmarks de referencia:
 - Checkout abandono: 60-70% normal e-commerce, 30-50% servicios
 - Upsell aceptación: 10-25% (buena), 5-10% (promedio)
 - ROAS: >3x (buena), 2-3x (ok), <2x (problema)
-- WhatsApp respuesta: 40-60% (buena), 20-40% (promedio)`
+- WhatsApp respuesta: 40-60% (buena), 20-40% (promedio)
+
+═══════════════════════════════════════════════════════
+CATÁLOGO COMPLETO DE NODOS — GENERACIÓN DE FUNNELS
+═══════════════════════════════════════════════════════
+
+REGLAS CRÍTICAS PARA GENERAR FUNNELS:
+1. Todo funnel DEBE empezar con un nodo de tráfico (trafficEntry recomendado) y SIEMPRE terminar con "result"
+2. No crear nodos duplicados del mismo tipo en secuencia sin razón lógica (ej: landingPage → landingPage)
+3. connections usa índices 0-based del array nodes: { from_index, to_index, path_type }
+4. path_type: "yes"/"no" para nodos con salida yes/no | "default" para salida única | "branch-0"..."branch-3" para split/abSplitTest | "rejection" para el handle rojo de no-conversores
+5. trafficEntry DEBE tener totalVisitors > 0 para que la simulación funcione
+6. Configurar siempre parámetros realistas — no dejar configs en 0 ni vacías
+7. Cada rama del funnel DEBE terminar llegando a result (conectar todos los caminos finales a result)
+8. El nodo "no" de upsell → va a downsell. El "no" de checkout → va a cartAbandonmentSeq o retargeting. El "no" de landingPage → va a retargeting o emailSequence de nurturing.
+
+══ TRÁFICO (nodos de entrada — sin input, siempre primeros) ══
+trafficEntry — Contenedor de fuentes de tráfico. SIEMPRE el primer nodo. Salida: única (default).
+  Config: { "name":"Tráfico Principal", "sources":[{"id":"s1","name":"Facebook Ads","source":"facebook_ads","type":"paid","budget":1000,"costModel":"cpc","cpc":0.80,"ctr":2,"visitors":1250}], "totalVisitors":1250, "totalPaidVisitors":1250, "totalOrganicVisitors":0, "totalBudget":1000 }
+  CRÍTICO: totalVisitors debe coincidir con la suma de visitors de las fuentes.
+  source opciones: "facebook_ads","google_search","google_display","tiktok_ads","instagram_organic","tiktok_organic","youtube_organic","linkedin_organic","blog_seo","email","podcast","referrals"
+  Para orgánico usa type:"organic" y reach+engagementRate+ctr en vez de budget/cpc.
+
+paidTraffic — Tráfico pagado especializado. Salida: única (default).
+  Config: { "platform":"meta", "costModel":"cpc", "budget":1000, "cpc":0.80, "cpm":10, "cpv":0.05, "ctr":2 }
+  platform: "meta"|"googleSearch"|"googleDisplay"|"youtube"|"tiktok"|"linkedin"|"twitter"|"pinterest"|"other"
+
+organicTraffic — Canal orgánico. Salida: única (default).
+  Config: { "channel":"instagram", "reach":10000, "engagementRate":3, "ctr":2, "listSize":0, "openRate":0, "activeReferrers":0, "referralsPerReferrer":0, "referralConversionRate":0 }
+  channel: "instagram"|"facebook"|"tiktok"|"youtube"|"linkedin"|"blog"|"podcast"|"emailList"|"referrals"|"other"
+
+══ PÁGINAS (salida yes=convierten / no=no convierten) ══
+landingPage — Landing page / captura de leads. Config: { "conversionRate":30, "bounceRate":55 }
+salesPage — Página de ventas con precio. Config: { "conversionRate":3, "price":97 }
+applicationPage — Formulario de aplicación. Config: { "completionRate":25, "qualificationRate":40, "formFields":5 }
+tripwire — Oferta de entrada low-ticket ($7-$27). Config: { "price":7, "conversionRate":15, "processorFee":3.5 }
+pricingPage — Tabla de precios SaaS. Config: { "conversionRate":5, "popularPlan":"pro", "annualPct":30, "avgTimeOnPage":120 }
+freeTrialSignup — Registro para trial gratuito. Config: { "signupRate":20, "activationRate":40, "trialDays":14 }
+thankYouOffer — OTO en página de gracias. Config: { "conversionRate":10, "price":27, "contentEngagementRate":60, "processorFee":3.5 }
+catalogStore — Tienda / catálogo de productos. Config: { "avgProductsViewed":3, "addToCartRate":15, "aov":85, "bounceRate":55 }
+
+══ VENTAS (salida yes/no, salvo orderBump) ══
+checkout — Proceso de pago. Config: { "price":97, "abandonmentRate":65, "processorFee":3.5 }
+upsell — Upsell post-compra. Config: { "price":197, "acceptanceRate":25 }
+downsell — Downsell si rechazan el upsell. Config: { "price":47, "acceptanceRate":35 }
+orderBump — Bump en el mismo checkout. Salida: única (default). Config: { "price":27, "acceptanceRate":30 }
+webinarVsl — Webinar en vivo / VSL / evergreen. Config: { "attendanceRate":35, "watchRate":60, "conversionRate":10, "price":497 }
+appointment — Llamada de ventas / cita. Config: { "bookingRate":30, "showRate":70, "closeRate":20, "price":1500 }
+outboundCall — Llamadas salientes. Config: { "callsPerDay":20, "contactRate":30, "conversationRate":60, "closeRate":15, "avgTicket":500 }
+inboundCall — Llamadas entrantes. Config: { "answeredRate":70, "closeRate":20, "avgTicket":500 }
+salesProposal — Propuesta de ventas. Config: { "openRate":70, "acceptanceRate":25, "avgPrice":2000, "avgDaysToClose":10 }
+productDemo — Demo del producto. Config: { "showRate":50, "followUpRate":60, "closeRate":15, "avgPrice":500 }
+trialToPaid — Conversión de trial a pago. Config: { "conversionRate":30, "price":49, "priceType":"monthly", "avgDaysToConvert":14 }
+  priceType: "monthly"|"annual"|"oneTime"
+digitalContract — Firma de contrato digital. Config: { "signedRate":70, "contractValue":1000, "avgDaysToSign":3 }
+salesNegotiation — Negociación de ventas. Config: { "winRate":40, "avgDiscountPct":10, "salesCycleDays":14 }
+eventSales — Ventas en evento presencial. Config: { "attendees":50, "leadsContactedRate":60, "followUpRate":40, "closeRate":15, "avgTicket":500 }
+physicalPos — Punto de venta físico. Config: { "walkInsPerMonth":200, "conversionRate":20, "avgTicket":50, "repeatRate":30 }
+
+══ FOLLOW-UP Y NURTURING (salida yes/no) ══
+emailSequence — Secuencia de emails automatizada. Config: { "mode":"sequence", "emails":7, "openRate":35, "ctr":3, "conversionRate":5 }
+whatsappSms — Mensajes WhatsApp / SMS. Config: { "deliveryRate":85, "responseRate":40, "conversionRate":8 }
+retargeting — Retargeting a no-conversores. Config: { "captureRate":50, "cpc":0.40, "conversionRate":5 }
+cartAbandonmentSeq — Recuperación de carrito abandonado. Config: { "emailCount":3, "openRate":45, "recoveryRate":10, "avgCartValue":85 }
+pushNotifications — Push notifications. Config: { "optInRate":45, "deliveryRate":90, "ctr":4, "postClickConversion":8 }
+dripCampaign — Drip campaign de nurturing. Config: { "duration":"1month", "emailCount":12, "openRate":22, "ctr":2.5, "sustainedEngagement":40, "eventualConversion":5 }
+  duration: "2weeks"|"1month"|"2months"|"3months"|"6months"
+multichannelNurturing — Nurturing multicanal. Config: { "activeChannels":["email","whatsapp"], "touchpoints":8, "conversionRate":12, "nurturingDays":30, "monthlyCost":50 }
+dynamicRetargeting — Retargeting dinámico con audiencias. Config: { "budget":200, "cpc":0.40, "ctr":2.5, "postClickConversion":5, "attributionWindow":7 }
+reEngagement — Campaña de re-engagement a inactivos. Config: { "inactiveReached":1000, "reactivationRate":5, "costPerReactivation":2, "reactivationChannel":"email" }
+  reactivationChannel: "email"|"whatsapp"|"sms"|"ads"
+
+══ CONTENIDO Y ENGAGEMENT ══
+leadMagnet — Lead magnet (PDF, video, template). Salida: yes/no. Config: { "optInRate":35, "leadQualityScore":6, "magnetType":"pdf" }
+  magnetType: "pdf"|"video"|"template"|"checklist"|"minicurso"|"herramienta"|"otro"
+blogSeo — Blog / SEO. Salida: única (default). Config: { "monthlyVisits":5000, "avgTimeOnPage":120, "scrollDepth":55, "ctrToCta":3.5 }
+videoContent — Contenido en video. Salida: única (default). Config: { "monthlyViews":8000, "watchTimePct":45, "ctrToCta":4, "subscriptionRate":2, "videoPlatform":"youtube" }
+  videoPlatform: "youtube"|"vimeo"|"wistia"|"other"
+quizInteractive — Quiz interactivo. Salida: yes/no. Config: { "startRate":60, "completionRate":70, "segments":3, "optInAtEnd":45 }
+calculatorTool — Calculadora / herramienta interactiva. Salida: única (default). Config: { "monthlyUses":2000, "avgUsageTimeSec":180, "nextStepConversion":12 }
+ebookGuide — Ebook / guía descargable. Salida: única (default). Config: { "avgPagesPct":35, "ctrToOffer":5 }
+resourceTemplate — Plantilla / recurso descargable. Salida: única (default). Config: { "downloadRate":40, "actualUseRate":30, "postUseConversion":8 }
+webinarReplay — Replay de webinar. Salida: yes/no. Config: { "viewsPct":25, "watchTimePct":40, "ctrToOffer":6, "conversionRate":4 }
+caseStudy — Caso de estudio. Salida: única (default). Config: { "avgReadTimeSec":180, "ctrToCta":8 }
+educationalCarousel — Carrusel educativo (RRSS). Salida: única (default). Config: { "avgSwipes":6, "saveRate":5, "shareRate":2, "ctrToLink":1.5 }
+
+══ AGENTES IA ══
+aiAgent — Agente IA unificado (canal configurable). Salida: yes/no. Config: { "channel":"whatsapp", "volumePerMonth":500, "autoResponseRate":85, "conversionRate":12, "humanHandoffRate":15, "costPerUnit":0.05, "avgCallDurationSec":120, "bookingRate":20, "csatScore":4.2 }
+  channel: "whatsapp"|"webchat"|"voice"|"instagram"|"facebook"|"email"
+chatbotRules — Chatbot basado en reglas. Salida: yes/no. Config: { "interactionsPerMonth":1500, "flowCompletionRate":55, "fallbackRate":20, "leadsCapturedRate":25 }
+automationWorkflow — Automatización de procesos. Salida: única (default). Config: { "executionsPerMonth":5000, "successRate":95, "timeSavedHrsPerMonth":40, "operatingCostPerMonth":30 }
+aiLeadScoring — Lead scoring con IA. Salida: única (default). Config: { "scoringPrecision":75, "mqlRate":30, "avgResponseTimeMin":5 }
+aiContentPersonalization — Personalización de contenido IA. Salida: única (default). Config: { "variantsGenerated":5, "ctrLift":25, "conversionLift":15 }
+aiSegmentation — Segmentación automática IA. Salida: única (default). Config: { "segmentsCreated":5, "segmentationPrecision":80 }
+
+══ POST-VENTA Y RETENCIÓN ══
+onboardingSeq — Secuencia de onboarding. Salida: yes/no. Config: { "completionRate":60, "timeToValueDays":7, "activationRate":45, "onboardingSteps":5 }
+reviewRequest — Solicitud de reseña. Salida: única (default). Config: { "responseRate":15, "avgRating":4.5, "platform":"google" }
+  platform: "google"|"trustpilot"|"facebook"|"appstore"|"other"
+referralProgram — Programa de referidos. Salida: única (default). Config: { "invitationsPerCustomer":3, "referralConversionRate":15, "cacReduction":30, "rewardCost":10 }
+renewalUpsell — Renovación / upsell retención. Salida: yes/no. Config: { "churnRate":5, "upgradeRate":8, "renewalPrice":29, "upgradePrice":79, "ltvIncrease":35 }
+postSaleSupport — Soporte post-venta. Salida: única (default). Config: { "ticketsPerMonth":50, "resolutionRate":85, "csatScore":7.5, "repurchaseImpact":15 }
+customerCommunity — Comunidad de clientes. Salida: única (default). Config: { "activeMembersRate":30, "monthlyEngagement":15, "retentionLift":20, "communityReferrals":5 }
+crossSell — Cross-sell post-compra. Salida: yes/no. Config: { "acceptanceRate":12, "price":45 }
+winBack — Campaña win-back de clientes perdidos. Salida: yes/no. Config: { "reactivationRate":8, "reactivationCost":15, "restoredLtv":150 }
+loyaltyProgram — Programa de lealtad/puntos. Salida: única (default). Config: { "participationRate":40, "redemptionRate":25, "purchaseFrequencyLift":18, "programCostPerCustomer":5 }
+npsSurvey — Encuesta NPS. Salida: única (default). Config: { "responseRate":25, "npsScore":45, "detractorsRate":15, "detractorActionRate":50 }
+
+══ UTILIDADES ══
+result — Nodo terminal. SIEMPRE el último nodo. Sin output. Sin config.
+delayWait — Espera / demora en el flujo. Salida: única (default). Config: { "days":3, "dropOffRate":5, "unit":"days" }
+  unit: "hours"|"days"|"weeks"
+split — División de tráfico en ramas. Salida: branch-0, branch-1, branch-2, branch-3.
+  Config: { "branches":[{"id":"branch-0","label":"Variante A","percentage":50},{"id":"branch-1","label":"Variante B","percentage":50}] }
+abSplitTest — Test A/B entre dos variantes. Salida: branch-0, branch-1.
+  Config: { "branches":[{"id":"branch-0","label":"Variante A","percentage":50},{"id":"branch-1","label":"Variante B","percentage":50}] }
+conditionalBranch — Rama condicional por criterio. Salida: yes/no. Config: { "branchCondition":"El usuario compró", "yesPercent":40 }
+mergeNode — Convergencia de múltiples ramas. Salida: única (default). Sin config.
+kpiCheckpoint — Checkpoint de KPI. Salida: única (default). Config: { "kpiName":"CPA", "kpiAlertThreshold":15, "kpiAlertType":"above" }
+milestoneNode — Hito del funnel. Salida: única (default). Config: { "milestoneStage":"purchase", "milestoneDescription":"Primera venta" }
+  milestoneStage: "awareness"|"interest"|"consideration"|"decision"|"purchase"|"retention"|"referral"
+fixedCostNode — Costo fijo mensual. Salida: única (default). Config: { "costConcept":"Hosting", "monthlyCost":100, "isRecurring":true }
+recurringRevenueNode — Ingresos recurrentes MRR. Salida: única (default). Config: { "mrr":29, "churnRate":5, "months":12, "growthRate":3 }
+loopRecurrence — Loop / ciclo recurrente. Salida: única (default). Config: { "iterations":12, "loopFrequency":"monthly", "retentionPerCycle":90 }
+  loopFrequency: "daily"|"weekly"|"monthly"|"annual"
+stickyNote — Nota de texto. Sin output de simulación. Config: { "text":"Nota aquí", "color":"#ffd700" }
+groupContainer — Contenedor visual para agrupar nodos. Sin output de simulación. Sin config.
+
+══ TRACKING (solo informativos — no afectan el flujo de conversión) ══
+Usá estos nodos ÚNICAMENTE si el usuario pide tracking explícitamente:
+metaPixel, googleTagManager, googleAnalytics, utmTracking, serverPostback, crmAttribution, heatmaps, callTracking, conversionApi, metaOfflineData
+Todos tienen salida única (default). No los incluyas en funnels básicos.
+
+══ PATRONES TÍPICOS DE FUNNELS (ejemplos de connections) ══
+
+Infoproducto / curso online:
+nodes: [trafficEntry(0), landingPage(1), emailSequence(2), salesPage(3), checkout(4), upsell(5), downsell(6), result(7)]
+connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 5→7(yes), 5→6(no), 6→7(yes), 6→7(no)
++ Opcional: 1→retargeting(no), 4→cartAbandonmentSeq(no)
+
+High-ticket / consultoría / agencia:
+nodes: [trafficEntry(0), landingPage(1), applicationPage(2), appointment(3), salesProposal(4), result(5)]
+connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes)
++ Opcional: 3→emailSequence(no), 4→salesNegotiation(no)→result(yes)
+
+SaaS / software:
+nodes: [trafficEntry(0), landingPage(1), freeTrialSignup(2), onboardingSeq(3), trialToPaid(4), recurringRevenueNode(5), result(6)]
+connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 5→6(default)
++ Opcional: 4→emailSequence(no)→trialToPaid(yes)→result
+
+E-commerce:
+nodes: [trafficEntry(0), salesPage(1), checkout(2), orderBump(3), thankYouOffer(4), result(5)]
+connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(default), 4→5(yes)
++ Opcional: 2→cartAbandonmentSeq(no)→checkout(yes)
+
+Webinar / lanzamiento:
+nodes: [trafficEntry(0), landingPage(1), webinarVsl(2), checkout(3), upsell(4), result(5)]
+connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 4→5(no)
++ Opcional: 2→emailSequence(no)→checkout(yes)
+
+RECUERDA: En el JSON siempre incluí "connections" (no "edges"), con from_index y to_index según la posición en el array nodes.`
 
 // ── Extrae métricas clave de un nodo (reduce tokens de contexto) ──────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,11 +263,20 @@ function serializeFunnelContext(ctx: Record<string, any>): string {
   return JSON.stringify({
     proyecto: ctx.projectName ?? 'Sin nombre',
     escenario: ctx.scenarioName ?? 'Principal',
-    nodos: (ctx.nodes ?? []).map((n: { type: string; label: string; config: Record<string, unknown> }) => ({
-      tipo: n.type, nombre: n.label, metricas: extractKeyMetrics(n),
+    nodos: (ctx.nodes ?? []).map((n: { type: string; label: string; config: Record<string, unknown>; simResult?: Record<string, number> }) => ({
+      tipo: n.type,
+      nombre: n.label,
+      metricas: extractKeyMetrics(n),
+      sim: n.simResult ? {
+        entran: n.simResult.entran,
+        convierten: n.simResult.convierten,
+        noConvierten: n.simResult.noConvierten,
+        revenue: n.simResult.revenue > 0 ? `$${n.simResult.revenue.toFixed(0)}` : undefined,
+        tasa: `${(n.simResult.tasaConversion ?? 0).toFixed(1)}%`,
+      } : undefined,
     })),
     flujo: (ctx.edges ?? []).map((e: { sourceLabel: string; targetLabel: string; pathType: string }) =>
-      `${e.sourceLabel} → ${e.targetLabel} (${e.pathType})`
+      `${e.sourceLabel} → ${e.targetLabel}${e.pathType !== 'default' ? ` (${e.pathType})` : ''}`
     ),
     resultados: ctx.simResults
       ? {
@@ -228,10 +400,14 @@ export async function POST(req: Request) {
     }
 
     // ── 2. Cargar historial desde Supabase ────────────────────────────────────
+    // analyze y suggestions analizan el estado ACTUAL del funnel — el historial
+    // anterior contamina el análisis con conclusiones sobre versiones viejas.
+    const skipHistory = ['analyze', 'suggestions'].includes(actionType)
+
     let lastSummaryCreatedAt: string | null = null
     let summaryText: string | null = null
 
-    if (projectId) {
+    if (projectId && !skipHistory) {
       const { data: summaryRow } = await admin
         .from('ai_chat_summaries')
         .select('summary, created_at')
@@ -247,7 +423,7 @@ export async function POST(req: Request) {
     }
 
     let recentMessages: Array<{ role: string; content: string }> = []
-    if (projectId) {
+    if (projectId && !skipHistory) {
       const query = admin
         .from('ai_chat_messages')
         .select('role, content')
@@ -272,8 +448,8 @@ export async function POST(req: Request) {
     // El contexto del funnel va como mensaje de usuario para no invalidar el cache del system prompt
     const includeContext = funnelContext && needsFunnelContext(actionType, message)
     if (includeContext) {
-      messages.push({ role: 'user', content: `[Contexto del funnel actual: ${serializeFunnelContext(funnelContext)}]` })
-      messages.push({ role: 'assistant', content: 'Entendido, tengo los datos del funnel.' })
+      messages.push({ role: 'user', content: `[Contexto actual del funnel — analizá ESTOS datos, ignorá versiones anteriores: ${serializeFunnelContext(funnelContext)}]` })
+      messages.push({ role: 'assistant', content: 'Entendido, analizo el estado actual del funnel.' })
     }
 
     for (const m of recentMessages) {

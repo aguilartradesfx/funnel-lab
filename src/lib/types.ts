@@ -118,7 +118,7 @@ export type FunnelNodeType =
 
 // ─── Tipos de path para conexiones ──────────────────────────────────────────
 
-export type PathType = 'yes' | 'no' | 'default' | 'branch-0' | 'branch-1' | 'branch-2' | 'branch-3'
+export type PathType = 'yes' | 'no' | 'default' | 'rejection' | 'branch-0' | 'branch-1' | 'branch-2' | 'branch-3'
 
 // ─── Producto global ─────────────────────────────────────────────────────────
 

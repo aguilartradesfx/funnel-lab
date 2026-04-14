@@ -1913,6 +1913,8 @@ export function runSimulation(
         targetFlow.yes += result.visitorsConverted
       } else if (pathType === 'no' || sourceHandle === 'output-no') {
         targetFlow.no += result.visitorsNotConverted
+      } else if (pathType === 'rejection' || sourceHandle === 'output-rejection') {
+        targetFlow.no += result.visitorsNotConverted
       } else if (sourceHandle?.startsWith('output-branch-')) {
         const branchId = sourceHandle.replace('output-', '')
         targetFlow.branches[branchId] = (targetFlow.branches[branchId] ?? 0) + result.visitorsConverted

@@ -58,23 +58,48 @@ function extractFunnelJSON(content: string): {
   }
 }
 
-// ─── Markdown renderer minimalista ───────────────────────────────────────────
+// ─── Markdown renderer ────────────────────────────────────────────────────────
 
 function MarkdownLine({ line }: { line: string }) {
-  // Bold: **text**
-  const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/)
+  // Bold (**text**), italic (*text*), inline code (`text`)
+  const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/)
   return (
     <>
       {parts.map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
           return <strong key={i} className="text-slate-100 font-semibold">{part.slice(2, -2)}</strong>
         }
+        if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+          return <em key={i} className="text-slate-300 italic">{part.slice(1, -1)}</em>
+        }
         if (part.startsWith('`') && part.endsWith('`')) {
-          return <code key={i} className="px-1 py-0.5 rounded bg-[#2a2a2a] text-orange-300 text-[12px] font-mono">{part.slice(1, -1)}</code>
+          return <code key={i} className="px-1 py-0.5 rounded bg-[#2a2a2a] text-orange-300 text-[11px] font-mono">{part.slice(1, -1)}</code>
         }
         return <span key={i}>{part}</span>
       })}
     </>
+  )
+}
+
+// Tarjetas de métricas: "valor | label && valor | label && ..."
+function MetricCards({ raw }: { raw: string }) {
+  const cards = raw.split('&&').map(s => s.trim()).filter(Boolean).map(card => {
+    const [value, label] = card.split('|').map(s => s.trim())
+    return { value: value ?? card, label: label ?? '' }
+  })
+  return (
+    <div className="flex gap-2 mt-2 mb-1 flex-wrap">
+      {cards.map((card, i) => (
+        <div
+          key={i}
+          className="flex-1 min-w-[70px] rounded-xl px-3 py-2 text-center"
+          style={{ backgroundColor: '#1a1a1a', border: '1px solid #2e2e2e' }}
+        >
+          <div className="text-[15px] font-bold text-white leading-tight">{card.value}</div>
+          {card.label && <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{card.label}</div>}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -86,6 +111,12 @@ function renderMarkdown(text: string): React.ReactNode {
   while (i < lines.length) {
     const line = lines[i]
 
+    // Tarjetas de métricas: líneas que empiezan con "> " y contienen "|"
+    if (line.startsWith('> ') && line.includes('|')) {
+      blocks.push(<MetricCards key={i} raw={line.slice(2)} />)
+      i++; continue
+    }
+
     // Code block
     if (line.startsWith('```')) {
       const lang = line.slice(3).trim()
@@ -95,45 +126,43 @@ function renderMarkdown(text: string): React.ReactNode {
         codeLines.push(lines[i])
         i++
       }
-      const codeContent = codeLines.join('\n')
-      // If it's JSON and there's JSON content, render as collapsible code
       blocks.push(
-        <pre key={i} className="mt-2 mb-2 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl p-3 overflow-x-auto text-[11px] text-slate-300 font-mono leading-relaxed">
-          {lang && <div className="text-[10px] text-slate-600 mb-1.5">{lang}</div>}
-          {codeContent}
+        <pre key={i} className="mt-2 mb-2 bg-[#141414] border border-[#2a2a2a] rounded-xl p-3 overflow-x-auto text-[11px] text-slate-300 font-mono leading-relaxed">
+          {lang && <div className="text-[10px] text-slate-600 mb-1.5 uppercase tracking-wider">{lang}</div>}
+          {codeLines.join('\n')}
         </pre>
       )
-      i++
-      continue
+      i++; continue
     }
 
-    // Header
+    // Headers
     if (line.startsWith('### ')) {
-      blocks.push(<h4 key={i} className="text-sm font-bold text-slate-200 mt-3 mb-1">{line.slice(4)}</h4>)
+      blocks.push(<h4 key={i} className="text-[13px] font-bold text-slate-100 mt-3 mb-1">{line.slice(4)}</h4>)
       i++; continue
     }
     if (line.startsWith('## ')) {
-      blocks.push(<h3 key={i} className="text-sm font-bold text-white mt-3 mb-1.5">{line.slice(3)}</h3>)
+      blocks.push(<h3 key={i} className="text-[13px] font-bold text-white mt-3 mb-1.5 border-b border-[#2a2a2a] pb-1">{line.slice(3)}</h3>)
       i++; continue
     }
     if (line.startsWith('# ')) {
-      blocks.push(<h2 key={i} className="text-base font-bold text-white mt-3 mb-2">{line.slice(2)}</h2>)
+      blocks.push(<h2 key={i} className="text-sm font-bold text-white mt-3 mb-2">{line.slice(2)}</h2>)
       i++; continue
     }
 
-    // Bullet list (collect consecutive items)
-    if (line.match(/^[-*] /)) {
-      const items: string[] = []
-      while (i < lines.length && lines[i].match(/^[-*] /)) {
-        items.push(lines[i].slice(2))
+    // Bullet list — también captura indentados con 2+ espacios
+    if (line.match(/^(\s{0,4})[-*] /)) {
+      const items: Array<{ text: string; indent: number }> = []
+      while (i < lines.length && lines[i].match(/^(\s{0,4})[-*] /)) {
+        const m = lines[i].match(/^(\s*)[-*] (.*)/)
+        items.push({ text: m?.[2] ?? lines[i], indent: (m?.[1]?.length ?? 0) > 0 ? 1 : 0 })
         i++
       }
       blocks.push(
         <ul key={i} className="space-y-1 my-1.5">
           {items.map((item, j) => (
-            <li key={j} className="flex items-start gap-1.5">
-              <span className="text-orange-500 mt-0.5 flex-shrink-0">·</span>
-              <span><MarkdownLine line={item} /></span>
+            <li key={j} className="flex items-start gap-1.5" style={{ paddingLeft: item.indent * 14 }}>
+              <span className="text-orange-500 mt-[3px] flex-shrink-0 text-[10px]">◆</span>
+              <span className="text-slate-300"><MarkdownLine line={item.text} /></span>
             </li>
           ))}
         </ul>
@@ -144,17 +173,16 @@ function renderMarkdown(text: string): React.ReactNode {
     // Numbered list
     if (line.match(/^\d+\. /)) {
       const items: string[] = []
-      let num = 1
       while (i < lines.length && lines[i].match(/^\d+\. /)) {
         items.push(lines[i].replace(/^\d+\. /, ''))
-        i++; num++
+        i++
       }
       blocks.push(
-        <ol key={i} className="space-y-1 my-1.5">
+        <ol key={i} className="space-y-1.5 my-1.5">
           {items.map((item, j) => (
             <li key={j} className="flex items-start gap-2">
-              <span className="text-orange-500 font-mono text-[11px] flex-shrink-0 mt-0.5">{j + 1}.</span>
-              <span><MarkdownLine line={item} /></span>
+              <span className="text-orange-500 font-bold text-[11px] flex-shrink-0 mt-0.5 w-4 text-right">{j + 1}.</span>
+              <span className="text-slate-300"><MarkdownLine line={item} /></span>
             </li>
           ))}
         </ol>
@@ -162,14 +190,20 @@ function renderMarkdown(text: string): React.ReactNode {
       continue
     }
 
-    // Empty line
-    if (line.trim() === '') {
-      blocks.push(<div key={i} className="h-2" />)
+    // Separador ---
+    if (line.match(/^---+$/)) {
+      blocks.push(<hr key={i} className="border-[#2a2a2a] my-2" />)
       i++; continue
     }
 
-    // Normal paragraph line
-    blocks.push(<p key={i} className="leading-relaxed"><MarkdownLine line={line} /></p>)
+    // Línea vacía
+    if (line.trim() === '') {
+      blocks.push(<div key={i} className="h-1.5" />)
+      i++; continue
+    }
+
+    // Párrafo normal
+    blocks.push(<p key={i} className="leading-relaxed text-slate-300"><MarkdownLine line={line} /></p>)
     i++
   }
 
@@ -189,9 +223,18 @@ function buildFunnelContext(
     projectName,
     scenarioName: 'Principal',
     nodes: nodes.map(n => ({
-      type: n.data.type,
+      type: n.data.nodeType,   // FIX: era n.data.type (undefined); nodeType es el campo correcto
       label: n.data.label,
       config: n.data.config ?? {},
+      simResult: n.data.simResult
+        ? {
+            entran: n.data.simResult.visitorsIn,
+            convierten: n.data.simResult.visitorsConverted,
+            noConvierten: n.data.simResult.visitorsNotConverted,
+            revenue: n.data.simResult.revenue,
+            tasaConversion: n.data.simResult.conversionRate,
+          }
+        : undefined,
     })),
     edges: edges.map(e => ({
       sourceLabel: nodeMap.get(e.source) ?? e.source,
@@ -493,10 +536,10 @@ export default function AIPanel() {
                 <div key={i} className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}>
                   <div
                     className={cn(
-                      'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed',
+                      'max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed',
                       msg.role === 'user'
                         ? 'bg-[#1e1e1e] text-slate-200 rounded-br-sm'
-                        : 'bg-[#181818] text-[#999] rounded-bl-sm border border-[#242424]'
+                        : 'bg-[#141414] text-slate-300 rounded-bl-sm border border-[#242424]'
                     )}
                   >
                     {msg.role === 'assistant'

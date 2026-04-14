@@ -254,6 +254,47 @@ function FunnelNodeComponent({ id, data, selected }: NodeProps<FunnelRFNode>) {
         />
       )}
 
+      {/* Punto de salida de no-conversión (rojo) @ 83.33% ≈ 100px — cerca de la esquina inferior derecha */}
+      {def.hasYesNoOutput && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="output-rejection"
+          style={{
+            background: '#ef4444',
+            right: -10,
+            top: '83.33%',
+            border: '5px solid #191919',
+            width: 16,
+            height: 16,
+          }}
+        />
+      )}
+
+      {/* Badge de no-convertidos junto al punto rojo */}
+      {hasSimulated && simResult && inChain && simResult.visitorsNotConverted > 0 && def.hasYesNoOutput && (
+        <div
+          style={{
+            position: 'absolute',
+            right: -14,
+            top: '83.33%',
+            transform: 'translateX(100%) translateY(-50%)',
+            fontSize: 9,
+            fontWeight: 700,
+            color: '#ef4444',
+            backgroundColor: 'rgba(15,15,15,0.9)',
+            border: '1px solid rgba(239,68,68,0.4)',
+            padding: '1px 5px',
+            borderRadius: 999,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        >
+          {formatNumber(simResult.visitorsNotConverted)}
+        </div>
+      )}
+
       {/* Branches @ posiciones múltiplo de 20px */}
       {def.hasBranchOutput && (config as SplitConfig).branches && (
         (config as SplitConfig).branches.map((branch, i) => {
