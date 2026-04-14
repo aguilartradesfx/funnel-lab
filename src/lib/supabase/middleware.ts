@@ -40,12 +40,18 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  const pathname = request.nextUrl.pathname
+
+  // NO llamar getUser() durante el callback de OAuth — puede borrar el
+  // PKCE code verifier antes de que el route handler lo intercambie.
+  if (pathname.startsWith('/auth/')) {
+    return supabaseResponse
+  }
+
   // Refrescar sesión (no usar getSession — puede ser stale)
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
   const isOnboarding = ONBOARDING_PATHS.some(p => pathname.startsWith(p))
 
