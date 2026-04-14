@@ -249,13 +249,24 @@ export const useFunnelStore = create<FunnelStore>()(
         if (hasDuplicate) return
 
         get().pushHistory()
+        // Resolve source node definition BEFORE entering set() to read stable state
+        const sourceNode = get().nodes.find(n => n.id === connection.source)
+        const sourceDef = sourceNode ? NODE_DEFINITIONS[sourceNode.data.nodeType] : null
         set(state => {
           // Determinar pathType desde el sourceHandle
           const sourceHandle = connection.sourceHandle ?? 'output'
           let pathType: NonNullable<FunnelRFEdge['data']>['pathType'] = 'default'
-          if (sourceHandle === 'output-yes') pathType = 'yes'
-          else if (sourceHandle === 'output-no') pathType = 'no'
-          else if (sourceHandle.startsWith('output-branch-')) {
+          if (sourceHandle === 'output-rejection') {
+            // Red rejection handle → "no" path (non-converted visitors)
+            pathType = 'no'
+          } else if (sourceHandle === 'output-yes') {
+            pathType = 'yes'
+          } else if (sourceHandle === 'output-no') {
+            pathType = 'no'
+          } else if (sourceHandle === 'output-right' && sourceDef?.hasYesNoOutput) {
+            // Main handle on a yes/no node (checkout, upsell, landingPage…) → "yes" path (converted)
+            pathType = 'yes'
+          } else if (sourceHandle.startsWith('output-branch-')) {
             pathType = sourceHandle.replace('output-', '') as NonNullable<FunnelRFEdge['data']>['pathType']
           }
 
@@ -762,6 +773,7 @@ export const useFunnelStore = create<FunnelStore>()(
           },
         }
 
+        const sourceDef = NODE_DEFINITIONS[sourceNode.data.nodeType]
         const newEdge: FunnelRFEdge = {
           id: `e-${uuid()}`,
           type: 'funnelEdge',
@@ -769,7 +781,7 @@ export const useFunnelStore = create<FunnelStore>()(
           target: newNodeId,
           sourceHandle: 'output-right',
           targetHandle: 'input-left',
-          data: { pathType: 'default' },
+          data: { pathType: sourceDef?.hasYesNoOutput ? 'yes' : 'default' },
         }
 
         set(state => {

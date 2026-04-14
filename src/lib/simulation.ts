@@ -1384,11 +1384,15 @@ export function runSimulation(
   nodes: FunnelRFNode[],
   edges: FunnelRFEdge[]
 ): GlobalSimResults {
-  // Deduplicate edges: if a source+handle→target pair appears more than once,
-  // only keep the first one. This prevents double-counting traffic when the
-  // stored graph has duplicate edges (e.g. from before the onConnect guard).
+  // Build node ID set for orphan-edge filtering
+  const nodeIdSet = new Set(nodes.map(n => n.id))
+
+  // Filter out orphan edges (source or target node no longer exists) THEN deduplicate.
+  // Orphan edges inflate inDegree in Kahn's algorithm, causing downstream nodes to
+  // never be queued and therefore be processed with visitorsIn = 0 (zero revenue).
   const seenEdgeKeys = new Set<string>()
   const dedupedEdges = edges.filter(e => {
+    if (!nodeIdSet.has(e.source) || !nodeIdSet.has(e.target)) return false
     const key = `${e.source}||${e.sourceHandle ?? ''}||${e.target}`
     if (seenEdgeKeys.has(key)) return false
     seenEdgeKeys.add(key)
