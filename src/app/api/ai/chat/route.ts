@@ -42,6 +42,7 @@ Reglas:
 - No inventes datos que no tenés. Si no sabés algo, decilo.
 - Sé conciso. No repitas lo que el usuario ya sabe. Andá al grano.
 - Si te piden generar un funnel, respondé con un bloque JSON dentro de \`\`\`json que el sistema pueda parsear
+- Cuando el usuario te pida que crees, armes o implementes un funnel en el canvas (frases como "armame el funnel", "crealo", "ponelo en el canvas", "implementá la estrategia", "hacelo", "generalo"), SIEMPRE respondé con el JSON del funnel dentro de \`\`\`json para que el sistema lo cree automáticamente. No le digas al usuario que lo haga manualmente.
 
 Benchmarks de referencia:
 - Landing page conversión: 20-40% (buena), 10-20% (promedio), <10% (mala)

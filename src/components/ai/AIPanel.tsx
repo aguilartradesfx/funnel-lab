@@ -18,6 +18,46 @@ interface ChatMessage {
   created_at?: string
 }
 
+// ─── Extrae y procesa un bloque JSON de funnel en la respuesta de la IA ───────
+
+interface FunnelJSONData {
+  funnel_name?: string
+  nodes: Array<{ type: string; label: string; config?: Record<string, unknown> }>
+  connections?: Array<{ from_index: number; to_index: number; path_type?: string }>
+  edges?: Array<{ from_index: number; to_index: number; path_type?: string }>
+}
+
+function extractFunnelJSON(content: string): {
+  funnelData: FunnelJSONData | null
+  displayContent: string
+} {
+  const jsonMatch = content.match(/```json\n?([\s\S]*?)```/)
+  if (!jsonMatch) return { funnelData: null, displayContent: content }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[1]) as FunnelJSONData
+    if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
+      return { funnelData: null, displayContent: content }
+    }
+
+    const nodeCount = parsed.nodes.length
+
+    // Conservar cualquier texto introductorio antes del bloque JSON
+    const jsonStart = content.indexOf('```json')
+    const preText = jsonStart > 0 ? content.slice(0, jsonStart).trim() : ''
+
+    const parts: string[] = []
+    if (preText) parts.push(preText)
+    parts.push(
+      `¡Listo! Creé un funnel con **${nodeCount} nodo${nodeCount !== 1 ? 's' : ''}** en tu canvas. Revisalo y ajustá las métricas según tu negocio.`
+    )
+
+    return { funnelData: parsed, displayContent: parts.join('\n\n') }
+  } catch {
+    return { funnelData: null, displayContent: content }
+  }
+}
+
 // ─── Markdown renderer minimalista ───────────────────────────────────────────
 
 function MarkdownLine({ line }: { line: string }) {
@@ -253,7 +293,16 @@ export default function AIPanel() {
       .order('created_at', { ascending: true })
       .limit(60)
       .then(({ data }) => {
-        if (data) setMessages(data as ChatMessage[])
+        if (data) {
+          // Procesar mensajes históricos: reemplazar JSON de funnel con mensaje amigable
+          // (sin importar al canvas — ya fue creado en su momento)
+          const processed = data.map(msg =>
+            msg.role === 'assistant'
+              ? { ...msg, content: extractFunnelJSON(msg.content).displayContent }
+              : msg
+          )
+          setMessages(processed as ChatMessage[])
+        }
         setHistoryLoading(false)
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -303,9 +352,12 @@ export default function AIPanel() {
         return
       }
 
+      // Detectar JSON de funnel en cualquier respuesta (no solo generate_funnel)
+      const { funnelData, displayContent } = extractFunnelJSON(data.content)
+
       const assistantMsg: ChatMessage = {
         role: 'assistant',
-        content: data.content,
+        content: displayContent,
         credits_used: data.credits_used,
         action_type: actionType,
         created_at: new Date().toISOString(),
@@ -313,19 +365,9 @@ export default function AIPanel() {
       setMessages(prev => [...prev, assistantMsg])
       if (data.credits_left != null) setCreditsLeft(data.credits_left)
 
-      // Si es generar funnel, intentar parsear el JSON y cargar en el canvas
-      if (actionType === 'generate_funnel') {
-        const jsonMatch = data.content.match(/```json\n?([\s\S]*?)```/)
-        if (jsonMatch) {
-          try {
-            const funnelData = JSON.parse(jsonMatch[1])
-            if (funnelData.nodes && importNodesFromAI) {
-              importNodesFromAI(funnelData.nodes, funnelData.connections ?? funnelData.edges ?? [])
-            }
-          } catch {
-            // JSON inválido — ignorar, el usuario ve la respuesta igual
-          }
-        }
+      // Importar nodos al canvas si se detectó un funnel JSON válido
+      if (funnelData?.nodes && importNodesFromAI) {
+        importNodesFromAI(funnelData.nodes, funnelData.connections ?? funnelData.edges ?? [])
       }
     } catch {
       setError('Error de red. Verificá tu conexión.')
