@@ -811,7 +811,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
       <div className="max-w-5xl mx-auto">
         <FadeIn className="text-center mb-16">
           <p className="text-orange-500 text-sm font-semibold uppercase tracking-wider mb-4">Planes</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Probalo gratis. Sin tarjeta.</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Pruébalo Gratis. Sin tarjeta.</h2>
           <p className="text-[#888] mb-3">Todos los planes pagos incluyen <span className="text-white font-semibold">7 días de prueba gratis</span> — cancelás cuando quieras.</p>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
             <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse" />

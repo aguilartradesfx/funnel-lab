@@ -158,6 +158,12 @@ interface FunnelActions {
   deleteProduct: (id: string) => void
   toggleProducts: (open?: boolean) => void
 
+  // AI
+  importNodesFromAI: (
+    aiNodes: Array<{ type: string; label: string; config?: Record<string, unknown> }>,
+    aiConnections: Array<{ from_index: number; to_index: number; path_type?: string }>
+  ) => void
+
   // Supabase context
   setSupabaseContext: (projectId: string, scenarioId: string) => void
   setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void
@@ -901,6 +907,55 @@ export const useFunnelStore = create<FunnelStore>()(
       toggleProducts: (open) => {
         set(state => {
           state.isProductsOpen = open !== undefined ? open : !state.isProductsOpen
+        })
+      },
+
+      importNodesFromAI: (aiNodes, aiConnections) => {
+        get().pushHistory()
+        const nodeIds: string[] = []
+        const newNodes: FunnelRFNode[] = aiNodes.map((n, i) => {
+          const nodeType = (n.type as FunnelNodeType) in NODE_DEFINITIONS
+            ? (n.type as FunnelNodeType)
+            : 'landingPage'
+          const def = NODE_DEFINITIONS[nodeType]
+          const id = `node-ai-${uuid()}`
+          nodeIds.push(id)
+          // Layout: flujo horizontal con salto vertical cada 4 nodos
+          const col = i % 4
+          const row = Math.floor(i / 4)
+          return {
+            id,
+            type: 'funnelNode' as const,
+            position: { x: col * 260, y: row * 160 },
+            data: {
+              nodeType,
+              label: n.label ?? def.label,
+              config: { ...def.defaultConfig, ...(n.config ?? {}) },
+            },
+          }
+        })
+
+        const newEdges: FunnelRFEdge[] = aiConnections
+          .filter(c => c.from_index < nodeIds.length && c.to_index < nodeIds.length)
+          .map(c => {
+            const pathType = (c.path_type ?? 'default') as FunnelRFEdge['data'] extends infer D ? D extends { pathType: infer P } ? P : 'default' : 'default'
+            return {
+              id: `e-ai-${uuid()}`,
+              type: 'funnelEdge' as const,
+              source: nodeIds[c.from_index],
+              target: nodeIds[c.to_index],
+              data: { pathType },
+            }
+          })
+
+        set(state => {
+          state.nodes = newNodes
+          state.edges = newEdges
+          state.selectedNodeId = null
+          state.simResults = null
+          state.hasSimulated = false
+          state.isConfigPanelOpen = false
+          state.shouldFitView = true
         })
       },
 

@@ -1,106 +1,601 @@
 'use client'
 
-import { X, Sparkles, Wand2, BarChart3, MessageSquare, Lock } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { X, Sparkles, Send, Loader2, BarChart3, Wand2, FileText, Lightbulb, ChevronRight } from 'lucide-react'
 import { useFunnelStore } from '@/stores/funnelStore'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import type { FunnelRFNode, FunnelRFEdge, GlobalSimResults } from '@/lib/types'
 
-const COMING_SOON_FEATURES = [
-  {
-    icon: BarChart3,
-    title: 'Análisis automático',
-    description: 'Detecta cuellos de botella y métricas poco realistas en tu funnel.',
-  },
-  {
-    icon: Wand2,
-    title: 'Diseño asistido',
-    description: 'Describí tu negocio y la IA sugiere qué nodos usar y en qué orden.',
-  },
-  {
-    icon: MessageSquare,
-    title: 'Chat de funnel',
-    description: 'Preguntá sobre métricas, benchmarks LATAM y cómo mejorar tu ROAS.',
-  },
-]
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  credits_used?: number
+  action_type?: string
+  created_at?: string
+}
+
+// ─── Markdown renderer minimalista ───────────────────────────────────────────
+
+function MarkdownLine({ line }: { line: string }) {
+  // Bold: **text**
+  const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} className="text-slate-100 font-semibold">{part.slice(2, -2)}</strong>
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          return <code key={i} className="px-1 py-0.5 rounded bg-[#2a2a2a] text-orange-300 text-[12px] font-mono">{part.slice(1, -1)}</code>
+        }
+        return <span key={i}>{part}</span>
+      })}
+    </>
+  )
+}
+
+function renderMarkdown(text: string): React.ReactNode {
+  const blocks: React.ReactNode[] = []
+  const lines = text.split('\n')
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Code block
+    if (line.startsWith('```')) {
+      const lang = line.slice(3).trim()
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        codeLines.push(lines[i])
+        i++
+      }
+      const codeContent = codeLines.join('\n')
+      // If it's JSON and there's JSON content, render as collapsible code
+      blocks.push(
+        <pre key={i} className="mt-2 mb-2 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl p-3 overflow-x-auto text-[11px] text-slate-300 font-mono leading-relaxed">
+          {lang && <div className="text-[10px] text-slate-600 mb-1.5">{lang}</div>}
+          {codeContent}
+        </pre>
+      )
+      i++
+      continue
+    }
+
+    // Header
+    if (line.startsWith('### ')) {
+      blocks.push(<h4 key={i} className="text-sm font-bold text-slate-200 mt-3 mb-1">{line.slice(4)}</h4>)
+      i++; continue
+    }
+    if (line.startsWith('## ')) {
+      blocks.push(<h3 key={i} className="text-sm font-bold text-white mt-3 mb-1.5">{line.slice(3)}</h3>)
+      i++; continue
+    }
+    if (line.startsWith('# ')) {
+      blocks.push(<h2 key={i} className="text-base font-bold text-white mt-3 mb-2">{line.slice(2)}</h2>)
+      i++; continue
+    }
+
+    // Bullet list (collect consecutive items)
+    if (line.match(/^[-*] /)) {
+      const items: string[] = []
+      while (i < lines.length && lines[i].match(/^[-*] /)) {
+        items.push(lines[i].slice(2))
+        i++
+      }
+      blocks.push(
+        <ul key={i} className="space-y-1 my-1.5">
+          {items.map((item, j) => (
+            <li key={j} className="flex items-start gap-1.5">
+              <span className="text-orange-500 mt-0.5 flex-shrink-0">·</span>
+              <span><MarkdownLine line={item} /></span>
+            </li>
+          ))}
+        </ul>
+      )
+      continue
+    }
+
+    // Numbered list
+    if (line.match(/^\d+\. /)) {
+      const items: string[] = []
+      let num = 1
+      while (i < lines.length && lines[i].match(/^\d+\. /)) {
+        items.push(lines[i].replace(/^\d+\. /, ''))
+        i++; num++
+      }
+      blocks.push(
+        <ol key={i} className="space-y-1 my-1.5">
+          {items.map((item, j) => (
+            <li key={j} className="flex items-start gap-2">
+              <span className="text-orange-500 font-mono text-[11px] flex-shrink-0 mt-0.5">{j + 1}.</span>
+              <span><MarkdownLine line={item} /></span>
+            </li>
+          ))}
+        </ol>
+      )
+      continue
+    }
+
+    // Empty line
+    if (line.trim() === '') {
+      blocks.push(<div key={i} className="h-2" />)
+      i++; continue
+    }
+
+    // Normal paragraph line
+    blocks.push(<p key={i} className="leading-relaxed"><MarkdownLine line={line} /></p>)
+    i++
+  }
+
+  return <>{blocks}</>
+}
+
+// ─── Construye el contexto del funnel para el API ─────────────────────────────
+
+function buildFunnelContext(
+  nodes: FunnelRFNode[],
+  edges: FunnelRFEdge[],
+  simResults: GlobalSimResults | null,
+  projectName: string,
+) {
+  const nodeMap = new Map(nodes.map(n => [n.id, n.data.label ?? n.id]))
+  return {
+    projectName,
+    scenarioName: 'Principal',
+    nodes: nodes.map(n => ({
+      type: n.data.type,
+      label: n.data.label,
+      config: n.data.config ?? {},
+    })),
+    edges: edges.map(e => ({
+      sourceLabel: nodeMap.get(e.source) ?? e.source,
+      targetLabel: nodeMap.get(e.target) ?? e.target,
+      pathType: e.data?.pathType ?? 'default',
+    })),
+    simResults: simResults
+      ? {
+          revenue: simResults.totalRevenue,
+          cost: simResults.totalCost,
+          profit: simResults.netProfit,
+          roas: simResults.roas,
+          roi: simResults.roi,
+          visitors: simResults.totalVisitors,
+          leads: simResults.totalLeads,
+          clients: simResults.totalCustomers,
+        }
+      : null,
+  }
+}
+
+// ─── Formatea la hora ─────────────────────────────────────────────────────────
+
+function formatTime(iso?: string) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+}
+
+// ─── Chips de acciones rápidas ────────────────────────────────────────────────
+
+const ACTION_CHIPS = [
+  { id: 'analyze',         label: 'Analizar',      credits: 3, icon: BarChart3 },
+  { id: 'suggestions',     label: 'Sugerencias',   credits: 2, icon: Lightbulb },
+  { id: 'generate_funnel', label: 'Generar funnel',credits: 5, icon: Wand2 },
+  { id: 'summary',         label: 'Resumen',        credits: 3, icon: FileText },
+] as const
+
+const ACTION_MESSAGES: Record<string, string> = {
+  analyze:     'Analizá mi funnel actual y dame un diagnóstico completo: cuellos de botella, métricas irrealistas, oportunidades de mejora, y nodos que debería agregar.',
+  suggestions: 'Dame las 3-5 mejoras más impactantes para mejorar el ROI de este funnel, con números específicos.',
+  summary:     'Generá un resumen ejecutivo de este funnel para presentar a un cliente. Incluí: estrategia del funnel, métricas clave, resultados proyectados, y próximos pasos recomendados.',
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function AIPanel() {
-  const isOpen = useFunnelStore(s => s.isAIPanelOpen)
+  const router = useRouter()
+  const supabase = createClient()
+
+  const isOpen        = useFunnelStore(s => s.isAIPanelOpen)
   const toggleAIPanel = useFunnelStore(s => s.toggleAIPanel)
+  const nodes         = useFunnelStore(s => s.nodes)
+  const edges         = useFunnelStore(s => s.edges)
+  const simResults    = useFunnelStore(s => s.simResults)
+  const projectName   = useFunnelStore(s => s.projectName)
+  const projectId     = useFunnelStore(s => s.supabaseProjectId)
+  const importNodesFromAI = useFunnelStore(s => s.importNodesFromAI)
+
+  const [messages, setMessages]         = useState<ChatMessage[]>([])
+  const [input, setInput]               = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [creditsLeft, setCreditsLeft]   = useState<number | null>(null)
+  const [isPlanStarter, setIsPlanStarter] = useState(false)
+  const [error, setError]               = useState('')
+
+  // Generar funnel: modo de ingreso de descripción
+  const [genFunnelMode, setGenFunnelMode]   = useState(false)
+  const [genFunnelInput, setGenFunnelInput] = useState('')
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef       = useRef<HTMLTextAreaElement>(null)
+
+  // ── Auto-scroll al último mensaje ─────────────────────────────────────────
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  // ── Cargar créditos e historial al abrir ───────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Créditos
+    fetch('/api/credits/status')
+      .then(r => r.json())
+      .then(data => {
+        setCreditsLeft(data.credits_left ?? 0)
+        setIsPlanStarter(data.plan === 'starter' && data.monthly_credits_total === 0)
+      })
+      .catch(() => {})
+
+    // Historial desde Supabase
+    if (!projectId) return
+    setHistoryLoading(true)
+    supabase
+      .from('ai_chat_messages')
+      .select('role, content, credits_used, action_type, created_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true })
+      .limit(60)
+      .then(({ data }) => {
+        if (data) setMessages(data as ChatMessage[])
+        setHistoryLoading(false)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, projectId])
+
+  // ── Focus al input cuando abre ─────────────────────────────────────────────
+  useEffect(() => {
+    if (isOpen && !isPlanStarter) {
+      setTimeout(() => inputRef.current?.focus(), 100)
+    }
+  }, [isOpen, isPlanStarter])
+
+  // ── Enviar mensaje ─────────────────────────────────────────────────────────
+  const sendMessage = useCallback(async (messageText: string, actionType: string = 'chat') => {
+    if (!messageText.trim() || loading) return
+    setError('')
+
+    const userMsg: ChatMessage = { role: 'user', content: messageText, action_type: actionType, created_at: new Date().toISOString() }
+    setMessages(prev => [...prev, userMsg])
+    setInput('')
+    setLoading(true)
+
+    const funnelContext = buildFunnelContext(nodes, edges, simResults, projectName)
+
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          message: messageText,
+          actionType,
+          funnelContext,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (data.error === 'sin_creditos') {
+          setCreditsLeft(0)
+          setError(data.message ?? 'Sin créditos disponibles.')
+        } else {
+          setError(data.error ?? 'Error al enviar el mensaje.')
+        }
+        setMessages(prev => prev.slice(0, -1))
+        return
+      }
+
+      const assistantMsg: ChatMessage = {
+        role: 'assistant',
+        content: data.content,
+        credits_used: data.credits_used,
+        action_type: actionType,
+        created_at: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, assistantMsg])
+      if (data.credits_left != null) setCreditsLeft(data.credits_left)
+
+      // Si es generar funnel, intentar parsear el JSON y cargar en el canvas
+      if (actionType === 'generate_funnel') {
+        const jsonMatch = data.content.match(/```json\n?([\s\S]*?)```/)
+        if (jsonMatch) {
+          try {
+            const funnelData = JSON.parse(jsonMatch[1])
+            if (funnelData.nodes && importNodesFromAI) {
+              importNodesFromAI(funnelData.nodes, funnelData.connections ?? funnelData.edges ?? [])
+            }
+          } catch {
+            // JSON inválido — ignorar, el usuario ve la respuesta igual
+          }
+        }
+      }
+    } catch {
+      setError('Error de red. Verificá tu conexión.')
+      setMessages(prev => prev.slice(0, -1))
+    } finally {
+      setLoading(false)
+    }
+  }, [loading, nodes, edges, simResults, projectName, projectId, importNodesFromAI])
+
+  // ── Acción rápida ──────────────────────────────────────────────────────────
+  const handleAction = (actionId: string) => {
+    if (actionId === 'generate_funnel') {
+      setGenFunnelMode(true)
+      return
+    }
+    sendMessage(ACTION_MESSAGES[actionId], actionId)
+  }
+
+  // ── Enviar "Generar funnel" ────────────────────────────────────────────────
+  const handleGenFunnel = () => {
+    if (!genFunnelInput.trim()) return
+    const msg = `Generá un funnel completo para este negocio: ${genFunnelInput}. Respondé SOLO con un bloque JSON dentro de \`\`\`json con esta estructura: { funnel_name, nodes: [{ type, label, config }], connections: [{ from_index, to_index, path_type }] }`
+    sendMessage(msg, 'generate_funnel')
+    setGenFunnelMode(false)
+    setGenFunnelInput('')
+  }
+
+  // ── Enter en textarea ──────────────────────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage(input)
+    }
+  }
 
   if (!isOpen) return null
 
+  const noCredits = creditsLeft !== null && creditsLeft <= 0
+
   return (
     <>
+      {/* Overlay mobile */}
       <div
         className="fixed inset-0 bg-black/40 z-40 md:hidden"
         onClick={() => toggleAIPanel(false)}
       />
 
-      <aside className="fixed right-0 top-0 bottom-0 w-[320px] border-l z-50 flex flex-col shadow-2xl animate-slide-right"
-        style={{ backgroundColor: '#141414', borderColor: '#2a2a2a' }}
+      <aside
+        className="fixed right-0 top-0 bottom-0 w-[340px] border-l z-50 flex flex-col shadow-2xl"
+        style={{ backgroundColor: '#111111', borderColor: '#222' }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
-          style={{ borderColor: '#222' }}
-        >
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#1e1e1e' }}>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: 'rgba(249,115,22,0.12)' }}
-            >
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(249,115,22,0.12)' }}>
               <Sparkles size={13} className="text-orange-400" />
             </div>
-            <span className="text-[13px] font-bold text-slate-100">Asistente IA</span>
+            <span className="text-[13px] font-bold text-slate-100">FunnelLab AI</span>
           </div>
-          <button
-            onClick={() => toggleAIPanel(false)}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
-          >
-            <X size={14} />
-          </button>
+          <div className="flex items-center gap-2">
+            {creditsLeft !== null && (
+              <div className={cn(
+                'flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium',
+                noCredits
+                  ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                  : 'bg-orange-500/10 border border-orange-500/20 text-orange-400'
+              )}>
+                <Sparkles size={9} />
+                <span>{creditsLeft} créditos</span>
+              </div>
+            )}
+            <button
+              onClick={() => toggleAIPanel(false)}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </div>
 
-        {/* Contenido: Próximamente */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-6">
-          {/* Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
-            style={{ backgroundColor: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.2)' }}
-          >
-            <Lock size={10} className="text-orange-400" />
-            <span className="text-[11px] font-semibold text-orange-400 tracking-widest uppercase">
-              Próximamente
-            </span>
+        {/* ── Plan Starter sin créditos: modal de upgrade ──────────────────── */}
+        {isPlanStarter ? (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-5 text-center">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+              <Sparkles size={22} className="text-orange-400" />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-bold text-white mb-1.5">Activá la IA</h3>
+              <p className="text-[12px] text-slate-500 leading-relaxed">
+                El plan Starter no incluye créditos de IA. Hacé upgrade a Pro o Max para usar el asistente.
+              </p>
+            </div>
+            <button
+              onClick={() => { toggleAIPanel(false); router.push('/pricing') }}
+              className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold transition-all"
+            >
+              Ver planes
+            </button>
           </div>
-
-          {/* Título */}
-          <div className="text-center">
-            <h3 className="text-[15px] font-bold text-slate-100 mb-1.5">
-              IA para funnels
-            </h3>
-            <p className="text-[12px] text-slate-500 leading-relaxed">
-              Estamos trabajando en un asistente que analiza tu funnel, sugiere mejoras y responde preguntas en español.
-            </p>
-          </div>
-
-          {/* Features */}
-          <div className="w-full space-y-2.5">
-            {COMING_SOON_FEATURES.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="flex items-start gap-3 p-3 rounded-xl"
-                style={{ backgroundColor: '#1c1c1c', border: '1px solid #272727' }}
-              >
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#252525' }}
-                >
-                  <Icon size={13} className="text-slate-400" />
+        ) : (
+          <>
+            {/* ── Mensajes ──────────────────────────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+              {historyLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={16} className="animate-spin text-slate-600" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-slate-300">{title}</p>
-                  <p className="text-[11px] text-slate-600 leading-relaxed mt-0.5">{description}</p>
+              )}
+
+              {!historyLoading && messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full py-8 gap-3 text-center">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                    <Sparkles size={18} className="text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-slate-300 mb-1">¿En qué puedo ayudarte?</p>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">Preguntame sobre tu funnel o usá las acciones rápidas de abajo.</p>
+                  </div>
+                </div>
+              )}
+
+              {messages.map((msg, i) => (
+                <div key={i} className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}>
+                  <div
+                    className={cn(
+                      'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed',
+                      msg.role === 'user'
+                        ? 'bg-[#1e1e1e] text-slate-200 rounded-br-sm'
+                        : 'bg-[#181818] text-[#999] rounded-bl-sm border border-[#242424]'
+                    )}
+                  >
+                    {msg.role === 'assistant'
+                      ? renderMarkdown(msg.content)
+                      : <p className="whitespace-pre-wrap">{msg.content}</p>
+                    }
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5 px-1">
+                    {msg.role === 'assistant' && msg.credits_used ? (
+                      <span className="text-[10px] text-slate-700">−{msg.credits_used} crédito{msg.credits_used !== 1 ? 's' : ''}</span>
+                    ) : null}
+                    {msg.created_at && (
+                      <span className="text-[10px] text-slate-700">{formatTime(msg.created_at)}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {loading && (
+                <div className="flex items-start gap-2">
+                  <div className="max-w-[88%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 bg-[#181818] border border-[#242424]">
+                    <div className="flex items-center gap-1.5">
+                      <Loader2 size={11} className="animate-spin text-slate-600" />
+                      <span className="text-[12px] text-slate-600">FunnelLab AI está pensando…</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* ── Error ─────────────────────────────────────────────────────── */}
+            {error && (
+              <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] leading-relaxed flex items-start gap-2">
+                <span className="flex-1">{error}</span>
+                {noCredits && (
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button onClick={() => { toggleAIPanel(false); router.push('/settings') }} className="text-[11px] text-red-300 underline whitespace-nowrap">Comprar más</button>
+                    <span className="text-red-600">·</span>
+                    <button onClick={() => { toggleAIPanel(false); router.push('/pricing') }} className="text-[11px] text-red-300 underline whitespace-nowrap">Upgrade</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Modo "Generar funnel": input de descripción ──────────────── */}
+            {genFunnelMode && (
+              <div className="mx-4 mb-2 p-3 rounded-xl bg-[#181818] border border-[#2e2e2e] space-y-2">
+                <p className="text-[11px] text-slate-400">Describí tu negocio y lo genero:</p>
+                <textarea
+                  autoFocus
+                  value={genFunnelInput}
+                  onChange={e => setGenFunnelInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenFunnel() } }}
+                  placeholder="Ej: Vendo cursos online de finanzas personales, tráfico de Facebook, landing page + email sequence..."
+                  rows={3}
+                  className="w-full bg-[#0f0f0f] border border-[#2e2e2e] rounded-lg px-2.5 py-2 text-[12px] text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-orange-500/40 resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setGenFunnelMode(false); setGenFunnelInput('') }}
+                    className="flex-1 py-1.5 rounded-lg text-[12px] text-slate-500 hover:text-slate-300 transition-colors border border-[#2e2e2e]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleGenFunnel}
+                    disabled={!genFunnelInput.trim()}
+                    className="flex-1 py-1.5 rounded-lg text-[12px] font-semibold bg-orange-600 hover:bg-orange-500 text-white transition-all disabled:opacity-40 flex items-center justify-center gap-1"
+                  >
+                    <ChevronRight size={13} />
+                    Generar
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
+
+            {/* ── Chips de acciones rápidas ────────────────────────────────── */}
+            <div className="px-4 pb-2 flex items-center gap-1.5 flex-wrap">
+              {ACTION_CHIPS.map(chip => {
+                const Icon = chip.icon
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => handleAction(chip.id)}
+                    disabled={loading || noCredits || (creditsLeft !== null && creditsLeft < chip.credits)}
+                    className={cn(
+                      'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all',
+                      'border border-[#2e2e2e] text-slate-400 hover:border-orange-500/40 hover:text-orange-400 hover:bg-orange-500/5',
+                      'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#2e2e2e] disabled:hover:text-slate-400 disabled:hover:bg-transparent'
+                    )}
+                  >
+                    <Icon size={10} />
+                    {chip.label}
+                    <span className="text-[10px] text-slate-600">({chip.credits})</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* ── Input ────────────────────────────────────────────────────── */}
+            <div className="px-4 pb-4 flex-shrink-0">
+              <div className={cn(
+                'flex items-end gap-2 bg-[#181818] border rounded-2xl px-3 py-2.5 transition-colors',
+                noCredits ? 'border-[#2e2e2e] opacity-60' : 'border-[#2e2e2e] focus-within:border-orange-500/30'
+              )}>
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={loading || noCredits}
+                  placeholder={noCredits ? 'Sin créditos disponibles' : 'Preguntale algo al asistente…'}
+                  rows={1}
+                  className="flex-1 bg-transparent text-[13px] text-slate-200 placeholder:text-slate-700 focus:outline-none resize-none leading-relaxed"
+                  style={{ maxHeight: '120px', overflowY: 'auto' }}
+                  onInput={e => {
+                    const t = e.target as HTMLTextAreaElement
+                    t.style.height = 'auto'
+                    t.style.height = Math.min(t.scrollHeight, 120) + 'px'
+                  }}
+                />
+                <button
+                  onClick={() => sendMessage(input)}
+                  disabled={!input.trim() || loading || noCredits}
+                  className="flex-shrink-0 w-7 h-7 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                >
+                  <Send size={12} className="text-white" />
+                </button>
+              </div>
+              {noCredits && !isPlanStarter && (
+                <div className="flex items-center justify-center gap-3 mt-2">
+                  <button onClick={() => { toggleAIPanel(false); router.push('/settings') }} className="text-[11px] text-slate-500 hover:text-slate-300 underline transition-colors">Comprar créditos</button>
+                  <span className="text-slate-700">·</span>
+                  <button onClick={() => { toggleAIPanel(false); router.push('/pricing') }} className="text-[11px] text-slate-500 hover:text-slate-300 underline transition-colors">Hacer upgrade</button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </aside>
     </>
   )
