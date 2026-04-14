@@ -70,7 +70,7 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
     <nav className={cn(
       'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
       scrolled
-        ? 'bg-[#0f0f0f]/95 backdrop-blur-md border-b border-[#2e2e2e]'
+        ? 'bg-[#0f0f0f]/95 backdrop-blur-md border-b border-[#1e1e1e]'
         : 'bg-transparent',
     )}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -90,7 +90,7 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
                 e.preventDefault()
                 document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' })
               }}
-              className="text-sm text-slate-400 hover:text-white transition-colors"
+              className="text-sm text-[#888] hover:text-white transition-colors"
             >
               {l.label}
             </a>
@@ -108,7 +108,7 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
             </Link>
           ) : (
             <>
-              <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-2">
+              <Link href="/login" className="text-sm text-[#888] hover:text-white transition-colors px-3 py-2">
                 Iniciar sesión
               </Link>
               <Link
@@ -122,20 +122,20 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
 
         {/* Mobile menu button */}
-        <button className="md:hidden p-2 text-slate-400" onClick={() => setMenuOpen(v => !v)}>
+        <button className="md:hidden p-2 text-[#888]" onClick={() => setMenuOpen(v => !v)}>
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#0f0f0f] border-b border-[#2e2e2e] px-6 py-4 space-y-3">
+        <div className="md:hidden bg-[#0f0f0f] border-b border-[#1e1e1e] px-6 py-4 space-y-3">
           {navLinks.map(l => (
             <a
               key={l.label}
               href={l.href}
               onClick={() => { setMenuOpen(false); document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' }) }}
-              className="block text-sm text-slate-300 hover:text-white py-1"
+              className="block text-sm text-[#ccc] hover:text-white py-1"
             >
               {l.label}
             </a>
@@ -147,7 +147,7 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
               </Link>
             ) : (
               <>
-                <Link href="/login" className="px-4 py-2 rounded-xl border border-[#2e2e2e] text-slate-300 text-sm text-center">
+                <Link href="/login" className="px-4 py-2 rounded-xl border border-[#1e1e1e] text-[#ccc] text-sm text-center">
                   Iniciar sesión
                 </Link>
                 <Link href="/register" className="px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-semibold text-center">
@@ -162,40 +162,259 @@ function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
   )
 }
 
+// ─── Static funnel builder mock ───────────────────────────────────────────────
+
+function FunnelBuilderMock() {
+  return (
+    <div className="w-full rounded-2xl border border-[#1e1e1e] bg-[#0a0a0a] overflow-hidden shadow-[0_40px_120px_-20px_rgba(0,0,0,0.95)]">
+
+      {/* Browser title bar */}
+      <div className="h-9 bg-[#0d0d0d] border-b border-[#1a1a1a] flex items-center px-4 gap-3 flex-shrink-0">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#222]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#222]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#222]" />
+        </div>
+        <div className="flex-1 max-w-xs mx-auto">
+          <div className="bg-[#111] border border-[#1e1e1e] rounded-md h-5 flex items-center justify-center px-3">
+            <span className="text-[9px] text-[#333]">funnellab.io/project/e-commerce-q1</span>
+          </div>
+        </div>
+      </div>
+
+      {/* App toolbar */}
+      <div className="h-11 bg-[#0d0d0d] border-b border-[#1a1a1a] flex items-center px-4 gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="" className="h-5 w-auto opacity-75 flex-shrink-0" />
+        <div className="w-px h-5 bg-[#1e1e1e] flex-shrink-0" />
+        <span className="text-[11px] text-[#555] truncate">E-commerce Q1 2025</span>
+        <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-[#1e1e1e] bg-[#111]">
+          <span className="text-[10px] text-[#4a4a4a]">Escenario 1</span>
+          <svg width="7" height="5" viewBox="0 0 7 5" fill="none"><path d="M1 1l2.5 2.5L6 1" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round"/></svg>
+        </div>
+        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+          <div className="hidden sm:block px-2.5 py-1 rounded-md border border-[#1e1e1e] bg-[#111]">
+            <span className="text-[10px] text-[#4a4a4a]">Guardar</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-orange-600">
+            <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
+            <span className="text-[10px] font-semibold text-white">Simular</span>
+          </div>
+        </div>
+      </div>
+
+      {/* App body */}
+      <div className="flex" style={{ height: '320px' }}>
+
+        {/* Left sidebar */}
+        <div className="hidden sm:flex w-11 flex-shrink-0 border-r border-[#1a1a1a] bg-[#0d0d0d] flex-col items-center py-3 gap-2">
+          {[
+            { label: '◈', active: true },
+            { label: '▣', active: false },
+            { label: '✉', active: false },
+            { label: '◎', active: false },
+            { label: '⬡', active: false },
+          ].map((item, i) => (
+            <div key={i} className={cn(
+              'w-7 h-7 rounded-lg border flex items-center justify-center',
+              item.active ? 'border-orange-500/40 bg-orange-500/10' : 'border-[#1e1e1e] bg-[#111]',
+            )}>
+              <span className={cn('text-[10px]', item.active ? 'text-orange-400' : 'text-[#3a3a3a]')}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Canvas */}
+        <div
+          className="flex-1 relative overflow-hidden"
+          style={{
+            backgroundColor: '#060606',
+            backgroundImage: 'radial-gradient(circle, #1c1c1c 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        >
+          <div className="absolute inset-0 flex items-center">
+            <div className="flex items-center gap-2 pl-5 pr-3">
+
+              {/* Node: Facebook Ads */}
+              <div className="flex-shrink-0 w-[112px] rounded-xl border border-orange-500/50 bg-[#0f0f0f] shadow-[0_0_24px_rgba(249,115,22,0.07)]">
+                <div className="p-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="w-5 h-5 rounded-md bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[9px] text-orange-400 font-bold">◈</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-white leading-tight">Facebook Ads</span>
+                  </div>
+                  <p className="text-[8px] text-[#444] mb-1.5">$1,000/mes · CPC $0.80</p>
+                  <div className="bg-orange-500/10 rounded-lg py-1 px-1.5 text-center">
+                    <span className="text-[10px] font-bold text-orange-400">1,250</span>
+                    <span className="text-[8px] text-[#555] ml-0.5">visitas</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center flex-shrink-0">
+                <div className="w-5 h-px bg-[#2a2a2a]" />
+                <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M0 0L5 4L0 8" fill="#2a2a2a"/></svg>
+              </div>
+
+              {/* Node: Landing Page */}
+              <div className="flex-shrink-0 w-[112px] rounded-xl border border-[#222] bg-[#0f0f0f]">
+                <div className="p-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[9px] text-[#666] font-bold">▣</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-white leading-tight">Landing Page</span>
+                  </div>
+                  <p className="text-[8px] text-[#444] mb-1.5">Conversión 25%</p>
+                  <div className="bg-[#141414] rounded-lg py-1 px-1.5 text-center">
+                    <span className="text-[10px] font-bold text-[#666]">312</span>
+                    <span className="text-[8px] text-[#444] ml-0.5">leads</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center flex-shrink-0">
+                <div className="w-5 h-px bg-[#2a2a2a]" />
+                <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M0 0L5 4L0 8" fill="#2a2a2a"/></svg>
+              </div>
+
+              {/* Node: Checkout */}
+              <div className="flex-shrink-0 w-[112px] rounded-xl border border-[#222] bg-[#0f0f0f]">
+                <div className="p-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[9px] text-[#666] font-bold">◎</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-white leading-tight">Checkout</span>
+                  </div>
+                  <p className="text-[8px] text-[#444] mb-1.5">Producto $97</p>
+                  <div className="bg-[#141414] rounded-lg py-1 px-1.5 text-center">
+                    <span className="text-[10px] font-bold text-[#666]">109</span>
+                    <span className="text-[8px] text-[#444] ml-0.5">clientes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-px h-14 bg-[#1a1a1a] flex-shrink-0 mx-1" />
+
+              {/* Results widget */}
+              <div className="flex-shrink-0 w-[100px] rounded-xl border border-orange-500/25 bg-[#0d0d0d] p-2.5">
+                <p className="text-[8px] font-semibold text-orange-400 uppercase tracking-wider mb-2">Resultado</p>
+                <div className="space-y-1.5">
+                  <div>
+                    <p className="text-[8px] text-[#555]">Revenue</p>
+                    <p className="text-[11px] font-bold text-white">$10,573</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] text-[#555]">ROAS</p>
+                    <p className="text-[11px] font-bold text-white">10.6x</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] text-[#555]">Profit</p>
+                    <p className="text-[11px] font-bold text-white">$9,573</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status badge */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0f0f0f] border border-[#1e1e1e]">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[9px] text-[#555]">Simulación lista · ROAS 10.6x</span>
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div className="hidden lg:flex w-44 flex-shrink-0 border-l border-[#1a1a1a] bg-[#0d0d0d] flex-col p-3">
+          <p className="text-[9px] text-[#444] font-semibold uppercase tracking-wider mb-3">Análisis IA</p>
+          <div className="space-y-2 mb-3">
+            <div className="p-2 rounded-lg bg-[#111] border border-[#1a1a1a]">
+              <p className="text-[8px] text-[#555] leading-relaxed">ROAS 10.6x. Funnel bien optimizado.</p>
+            </div>
+            <div className="p-2 rounded-lg bg-[#111] border border-orange-500/15">
+              <p className="text-[8px] text-orange-400/70 leading-relaxed">A/B test en landing puede mejorar +20% revenue.</p>
+            </div>
+          </div>
+          <div className="border-t border-[#1a1a1a] pt-2.5 mt-auto">
+            <p className="text-[9px] text-[#444] mb-2">Embudo</p>
+            {[
+              { label: 'Visitas', pct: 100 },
+              { label: 'Leads', pct: 25 },
+              { label: 'Clientes', pct: 9 },
+            ].map(item => (
+              <div key={item.label} className="mb-1.5">
+                <div className="flex justify-between mb-0.5">
+                  <span className="text-[8px] text-[#444]">{item.label}</span>
+                  <span className="text-[8px] text-[#444]">{item.pct}%</span>
+                </div>
+                <div className="h-1 bg-[#111] rounded-full overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full', item.pct === 9 ? 'bg-orange-500/50' : 'bg-[#2e2e2e]')}
+                    style={{ width: `${item.pct}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Status bar */}
+      <div className="h-7 bg-[#0d0d0d] border-t border-[#1a1a1a] flex items-center px-4 gap-3">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-[9px] text-[#444]">Simulación completada</span>
+        </div>
+        <span className="text-[9px] text-[#2a2a2a]">·</span>
+        <span className="text-[9px] text-[#444]">3 nodos</span>
+        <span className="text-[9px] text-[#2a2a2a]">·</span>
+        <span className="text-[9px] text-[#444]">ROAS 10.6x</span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-16 overflow-hidden">
-      {/* Subtle radial bg */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(249,115,22,0.08) 0%, transparent 70%)',
-      }} />
+    <section className="relative pt-28 pb-0 overflow-hidden">
+      {/* Faint orange glow */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '-5%', left: '50%', transform: 'translateX(-50%)',
+          width: '900px', height: '500px',
+          background: 'radial-gradient(ellipse, rgba(249,115,22,0.07) 0%, transparent 65%)',
+          filter: 'blur(40px)',
+        }}
+      />
 
-      <div className="relative max-w-4xl mx-auto text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/5 text-xs font-medium text-orange-400 mb-8">
+      {/* Text block */}
+      <div className="relative max-w-4xl mx-auto text-center px-6 mb-14">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-orange-500/25 bg-orange-500/5 text-xs font-medium text-orange-400 mb-7">
           <Zap size={11} />
           Simulá, predecí y optimizá con IA
         </div>
 
-        {/* Headline */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight mb-6 tracking-tight">
-          Simulá tu funnel antes de{' '}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-[1.08] mb-6 tracking-tight">
+          Simulá tu funnel<br />
+          antes de{' '}
           <span className="text-orange-400">gastar un centavo</span>
         </h1>
 
-        {/* Sub */}
-        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-[#777] max-w-2xl mx-auto mb-10 leading-relaxed">
           Construí visualmente cualquier funnel de marketing, predecí conversiones
-          y detectá cuellos de botella antes de invertir en ads.
+          y detectá cuellos de botella antes de invertir un peso.
         </p>
 
-        {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href={isAuthenticated ? '/dashboard' : '/register'}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-base transition-all shadow-lg shadow-orange-950/40"
+            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-base transition-all"
           >
             {isAuthenticated ? 'Ir al dashboard' : 'Empezar gratis'}
             <ArrowRight size={16} />
@@ -203,25 +422,22 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
           <a
             href="#demo"
             onClick={e => { e.preventDefault(); document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' }) }}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-[#2e2e2e] hover:border-[#3e3e3e] text-slate-300 hover:text-white font-semibold text-base transition-all"
+            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-[#222] hover:border-[#333] text-[#777] hover:text-white font-semibold text-base transition-all"
           >
-            Ver demo
+            Ver demo en vivo
           </a>
         </div>
+      </div>
 
-        {/* Stats */}
-        <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          {[
-            { value: '+70', label: 'tipos de nodos' },
-            { value: '3', label: 'funnels en demo' },
-            { value: '∞', label: 'escenarios posibles' },
-          ].map(s => (
-            <div key={s.label} className="text-center">
-              <p className="text-2xl font-bold text-white">{s.value}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-            </div>
-          ))}
-        </div>
+      {/* App mock — fades to bg at bottom */}
+      <div
+        className="relative max-w-5xl mx-auto px-6"
+        style={{
+          maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+        }}
+      >
+        <FunnelBuilderMock />
       </div>
     </section>
   )
@@ -234,12 +450,12 @@ function SocialProof() {
   return (
     <section className="border-y border-[#1a1a1a] bg-[#0f0f0f] py-6 px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto">
-        <p className="text-center text-xs text-slate-600 uppercase tracking-widest mb-5">
+        <p className="text-center text-xs text-[#555] uppercase tracking-widest mb-5">
           Diseñado para marketers, agencias y emprendedores
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {platforms.map(p => (
-            <span key={p} className="text-sm font-medium text-slate-600 hover:text-slate-400 transition-colors whitespace-nowrap">
+            <span key={p} className="text-sm font-medium text-[#555] hover:text-[#888] transition-colors whitespace-nowrap">
               {p}
             </span>
           ))}
@@ -254,17 +470,17 @@ function SocialProof() {
 function ProblemSolution() {
   const pains = [
     {
-      icon: '💸',
+      icon: '$',
       title: 'Gastás en ads sin certeza',
       desc: 'Lanzás campañas y cruzás los dedos esperando que funcionen. Si no, ya perdiste el presupuesto.',
     },
     {
-      icon: '🎲',
+      icon: '?',
       title: 'Funnels por intuición',
       desc: 'Armás la estructura del funnel basado en feeling. No hay datos que respalden las decisiones.',
     },
     {
-      icon: '🔍',
+      icon: '↓',
       title: 'Los cuellos de botella aparecen tarde',
       desc: 'Descubrís dónde estás perdiendo clientes cuando ya invertiste semanas y dinero.',
     },
@@ -283,10 +499,12 @@ function ProblemSolution() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-16">
           {pains.map((p, i) => (
             <FadeIn key={p.title} delay={i * 100}>
-              <div className="p-6 rounded-2xl border border-[#2e2e2e] bg-[#0f0f0f] h-full">
-                <div className="text-3xl mb-4">{p.icon}</div>
+              <div className="p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full">
+                <div className="w-9 h-9 rounded-xl border border-[#222] bg-[#111] flex items-center justify-center mb-4">
+                  <span className="text-sm font-bold text-[#555]">{p.icon}</span>
+                </div>
                 <h3 className="text-base font-semibold text-white mb-2">{p.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{p.desc}</p>
+                <p className="text-sm text-[#666] leading-relaxed">{p.desc}</p>
               </div>
             </FadeIn>
           ))}
@@ -313,7 +531,7 @@ function DemoSection() {
         <FadeIn className="text-center mb-12">
           <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Demo en vivo</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Mirá cómo funciona</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">
+          <p className="text-[#888] max-w-xl mx-auto">
             Simulación en tiempo real de un funnel real. Nodos que aparecen, métricas que se calculan, resultados que se leen solos.
           </p>
         </FadeIn>
@@ -362,12 +580,12 @@ function Features() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {features.map((f, i) => (
             <FadeIn key={f.title} delay={i * 80}>
-              <div className="p-6 rounded-2xl border border-[#2e2e2e] bg-[#111111] h-full group hover:border-orange-500/30 transition-colors">
+              <div className="p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full group hover:border-orange-500/30 transition-colors">
                 <div className="w-9 h-9 rounded-xl bg-orange-600/15 border border-orange-600/20 flex items-center justify-center mb-4">
                   {f.icon}
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                <p className="text-sm text-[#666] leading-relaxed">{f.desc}</p>
               </div>
             </FadeIn>
           ))}
@@ -412,7 +630,7 @@ function HowItWorks() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {steps.map((s, i) => (
             <FadeIn key={s.n} delay={i * 120}>
-              <div className="relative p-6 rounded-2xl border border-[#2e2e2e] bg-[#111111] h-full">
+              <div className="relative p-6 rounded-2xl border border-[#1e1e1e] bg-[#0d0d0d] h-full">
                 <div className="flex items-start gap-4 mb-4">
                   <span className="text-3xl font-black text-[#2e2e2e] leading-none flex-shrink-0">{s.n}</span>
                   <span className="px-2 py-0.5 rounded-full border border-orange-500/30 bg-orange-500/5 text-[10px] font-medium text-orange-400 mt-1">
@@ -420,7 +638,7 @@ function HowItWorks() {
                   </span>
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">{s.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{s.desc}</p>
+                <p className="text-sm text-[#666] leading-relaxed">{s.desc}</p>
               </div>
             </FadeIn>
           ))}
@@ -438,7 +656,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
       id: 'starter',
       name: 'Starter',
       price: '$6.99',
-      color: 'text-slate-300',
+      color: 'text-[#aaa]',
       highlight: false,
       features: ['Canvas y simulación ilimitada', '3 proyectos', '1 escenario por proyecto', 'Blueprints incluidos'],
     },
@@ -454,7 +672,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
       id: 'max',
       name: 'Max',
       price: '$69',
-      color: 'text-purple-400',
+      color: 'text-[#aaa]',
       highlight: false,
       features: ['Todo lo de Pro', '800 créditos IA/mes', 'Proyectos ilimitados', 'Escenarios ilimitados', 'Soporte prioritario'],
     },
@@ -468,7 +686,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
         <FadeIn className="text-center mb-16">
           <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider mb-4">Planes</p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Sin sorpresas. Sin compromisos.</h2>
-          <p className="text-slate-400">7 días de prueba gratis en planes pagos. Sin tarjeta para el plan Starter.</p>
+          <p className="text-[#888]">7 días de prueba gratis en planes pagos. Sin tarjeta para el plan Starter.</p>
         </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -476,7 +694,7 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
             <FadeIn key={p.id} delay={i * 80}>
               <div className={cn(
                 'relative flex flex-col rounded-2xl border p-6 h-full',
-                p.highlight ? 'border-orange-500/50 bg-orange-500/5' : 'border-[#2e2e2e] bg-[#111111]',
+                p.highlight ? 'border-orange-500/50 bg-orange-500/5' : 'border-[#1e1e1e] bg-[#0d0d0d]',
               )}>
                 {p.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -489,12 +707,12 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
                   <h3 className={cn('text-base font-bold mb-1', p.color)}>{p.name}</h3>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-white">{p.price}</span>
-                    <span className="text-slate-500 text-sm">/mes</span>
+                    <span className="text-[#666] text-sm">/mes</span>
                   </div>
                 </div>
                 <ul className="space-y-2.5 mb-6 flex-1">
                   {p.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                    <li key={f} className="flex items-start gap-2 text-sm text-[#ccc]">
                       <Check size={13} className="text-orange-400 flex-shrink-0 mt-0.5" />
                       {f}
                     </li>
@@ -517,12 +735,12 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
 
         <FadeIn>
-          <div className="max-w-sm mx-auto border border-[#2e2e2e] rounded-2xl p-5 bg-[#111111] text-center">
+          <div className="max-w-sm mx-auto border border-[#1e1e1e] rounded-2xl p-5 bg-[#0d0d0d] text-center">
             <Zap size={16} className="text-orange-400 mx-auto mb-2" />
             <p className="text-sm font-semibold text-white mb-1">Pack de créditos adicionales</p>
-            <p className="text-xs text-slate-500 mb-3">250 créditos · Compra única · No vencen</p>
-            <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-[#0f0f0f] border border-[#2e2e2e]">
-              <span className="text-sm text-slate-300">250 créditos IA</span>
+            <p className="text-xs text-[#666] mb-3">250 créditos · Compra única · No vencen</p>
+            <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-[#0f0f0f] border border-[#1e1e1e]">
+              <span className="text-sm text-[#ccc]">250 créditos IA</span>
               <span className="text-sm font-bold text-orange-400">$9.99</span>
             </div>
           </div>
@@ -575,7 +793,7 @@ function FAQ() {
         <div className="space-y-2">
           {FAQS.map((faq, i) => (
             <FadeIn key={i} delay={i * 40}>
-              <div className="border border-[#2e2e2e] rounded-xl overflow-hidden bg-[#111111]">
+              <div className="border border-[#1e1e1e] rounded-xl overflow-hidden bg-[#0d0d0d]">
                 <button
                   onClick={() => setOpen(open === i ? null : i)}
                   className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
@@ -583,11 +801,11 @@ function FAQ() {
                   <span className="text-sm font-medium text-white">{faq.q}</span>
                   <ChevronDown
                     size={16}
-                    className={cn('text-slate-500 flex-shrink-0 transition-transform duration-200', open === i && 'rotate-180')}
+                    className={cn('text-[#666] flex-shrink-0 transition-transform duration-200', open === i && 'rotate-180')}
                   />
                 </button>
                 {open === i && (
-                  <div className="px-5 pb-4 text-sm text-slate-400 leading-relaxed border-t border-[#2e2e2e] pt-3">
+                  <div className="px-5 pb-4 text-sm text-[#888] leading-relaxed border-t border-[#1e1e1e] pt-3">
                     {faq.a}
                   </div>
                 )}
@@ -611,7 +829,7 @@ function FinalCTA({ isAuthenticated }: { isAuthenticated: boolean }) {
             Dejá de adivinar.<br />
             <span className="text-orange-400">Empezá a simular.</span>
           </h2>
-          <p className="text-slate-400 mb-8">
+          <p className="text-[#888] mb-8">
             7 días de prueba gratis en planes pagos. Sin tarjeta para empezar.
           </p>
           <Link
@@ -638,18 +856,18 @@ function Footer() {
           <div className="col-span-2 md:col-span-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="FunnelLab" className="h-7 w-auto mb-3" />
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-[#555] leading-relaxed">
               Simulá funnels de marketing antes de gastar un centavo en ads.
             </p>
           </div>
 
           {/* Producto */}
           <div>
-            <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">Producto</p>
+            <p className="text-xs font-semibold text-[#ccc] uppercase tracking-wider mb-3">Producto</p>
             <ul className="space-y-2">
               {['Features', 'Pricing', 'Demo'].map(l => (
                 <li key={l}>
-                  <a href={`#${l.toLowerCase()}`} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                  <a href={`#${l.toLowerCase()}`} className="text-sm text-[#666] hover:text-[#ccc] transition-colors">
                     {l}
                   </a>
                 </li>
@@ -659,11 +877,11 @@ function Footer() {
 
           {/* Cuenta */}
           <div>
-            <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">Cuenta</p>
+            <p className="text-xs font-semibold text-[#ccc] uppercase tracking-wider mb-3">Cuenta</p>
             <ul className="space-y-2">
               {[{ label: 'Iniciar sesión', href: '/login' }, { label: 'Registrarse', href: '/register' }, { label: 'Dashboard', href: '/dashboard' }].map(l => (
                 <li key={l.label}>
-                  <Link href={l.href} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                  <Link href={l.href} className="text-sm text-[#666] hover:text-[#ccc] transition-colors">
                     {l.label}
                   </Link>
                 </li>
@@ -673,11 +891,11 @@ function Footer() {
 
           {/* Legal */}
           <div>
-            <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">Legal</p>
+            <p className="text-xs font-semibold text-[#ccc] uppercase tracking-wider mb-3">Legal</p>
             <ul className="space-y-2">
               {[{ label: 'Términos de servicio', href: '/terms' }, { label: 'Privacidad', href: '/privacy' }].map(l => (
                 <li key={l.label}>
-                  <Link href={l.href} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                  <Link href={l.href} className="text-sm text-[#666] hover:text-[#ccc] transition-colors">
                     {l.label}
                   </Link>
                 </li>
@@ -687,9 +905,9 @@ function Footer() {
         </div>
 
         <div className="border-t border-[#1a1a1a] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-[#555]">
             Hecho con ♥ por{' '}
-            <a href="https://bralto.io" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors">
+            <a href="https://bralto.io" target="_blank" rel="noopener noreferrer" className="hover:text-[#888] transition-colors">
               Bralto
             </a>
           </p>
@@ -699,7 +917,7 @@ function Footer() {
               { icon: <AtSign size={15} />, href: '#' },
               { icon: <Globe size={15} />, href: '#' },
             ].map((s, i) => (
-              <a key={i} href={s.href} className="text-slate-600 hover:text-slate-400 transition-colors">
+              <a key={i} href={s.href} className="text-[#555] hover:text-[#888] transition-colors">
                 {s.icon}
               </a>
             ))}
