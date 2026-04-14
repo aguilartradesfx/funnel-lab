@@ -778,6 +778,19 @@ function NodeMetrics({
         </div>
       )
     // ─── Agentes de IA ───
+    case 'aiAgent': {
+      const CHANNEL_LABEL: Record<string, string> = {
+        whatsapp: 'WhatsApp', webchat: 'Web Chat', voice: 'Voz',
+        instagram: 'Instagram', facebook: 'Facebook', email: 'Email',
+      }
+      return (
+        <div className="space-y-1">
+          <div className="text-[10px] text-slate-500 mb-0.5">{CHANNEL_LABEL[c.channel as string] ?? c.channel}</div>
+          <MetricRow label="Auto-respuesta" value={formatPercent(c.autoResponseRate as number)} highlight />
+          <MetricRow label="Conversión" value={formatPercent(c.conversionRate as number)} />
+        </div>
+      )
+    }
     case 'aiWhatsapp':
       return (
         <div className="space-y-1">

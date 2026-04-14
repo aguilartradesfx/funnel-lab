@@ -63,6 +63,8 @@ import type {
   ResourceTemplateConfig,
   WebinarReplayConfig,
   CaseStudyConfig,
+  AiAgentUnifiedConfig,
+  AiAgentChannel,
   AiWhatsappConfig,
   AiWebChatConfig,
   AiVoiceConfig,
@@ -2597,6 +2599,120 @@ function CaseStudyForm({ config, onChange }: { config: CaseStudyConfig; onChange
 
 // ─── Formularios: Agentes de IA ──────────────────────────────────────────────
 
+const AI_CHANNEL_OPTIONS: Array<{ value: AiAgentChannel; label: string }> = [
+  { value: 'whatsapp',  label: 'WhatsApp' },
+  { value: 'webchat',   label: 'Web Chat' },
+  { value: 'voice',     label: 'Voz (llamadas)' },
+  { value: 'instagram', label: 'Instagram DM' },
+  { value: 'facebook',  label: 'Facebook Messenger' },
+  { value: 'email',     label: 'Email' },
+]
+
+// Defaults por canal — se aplican al cambiar de canal
+const CHANNEL_DEFAULTS: Record<AiAgentChannel, Partial<AiAgentUnifiedConfig>> = {
+  whatsapp:  { volumePerMonth: 500,  autoResponseRate: 85, conversionRate: 12, humanHandoffRate: 15, costPerUnit: 0.05, avgCallDurationSec: 0, bookingRate: 0, csatScore: 4 },
+  webchat:   { volumePerMonth: 1000, autoResponseRate: 70, conversionRate: 15, humanHandoffRate: 20, costPerUnit: 0,    avgCallDurationSec: 0, bookingRate: 0, csatScore: 4.2 },
+  voice:     { volumePerMonth: 300,  autoResponseRate: 60, conversionRate: 20, humanHandoffRate: 0,  costPerUnit: 0.15, avgCallDurationSec: 120, bookingRate: 20, csatScore: 4 },
+  instagram: { volumePerMonth: 800,  autoResponseRate: 80, conversionRate: 18, humanHandoffRate: 0,  costPerUnit: 0,    avgCallDurationSec: 0, bookingRate: 0, csatScore: 4 },
+  facebook:  { volumePerMonth: 600,  autoResponseRate: 80, conversionRate: 15, humanHandoffRate: 0,  costPerUnit: 0,    avgCallDurationSec: 0, bookingRate: 0, csatScore: 4 },
+  email:     { volumePerMonth: 2000, autoResponseRate: 75, conversionRate: 22, humanHandoffRate: 0,  costPerUnit: 0,    avgCallDurationSec: 0, bookingRate: 0, csatScore: 4 },
+}
+
+const VOLUME_LABEL: Record<AiAgentChannel, string> = {
+  whatsapp:  'Mensajes/mes',
+  webchat:   'Sesiones/mes',
+  voice:     'Llamadas/mes',
+  instagram: 'DMs/mes',
+  facebook:  'Mensajes/mes',
+  email:     'Emails/mes',
+}
+
+function AiAgentForm({ config, onChange }: { config: AiAgentUnifiedConfig; onChange: (p: Partial<AiAgentUnifiedConfig>) => void }) {
+  const ch = config.channel ?? 'whatsapp'
+  const hasHandoff = ['whatsapp', 'webchat', 'voice'].includes(ch)
+  const hasCost = ch === 'whatsapp' || ch === 'voice'
+  const isVoice = ch === 'voice'
+  const isWebChat = ch === 'webchat'
+
+  const handleChannelChange = (newChannel: string) => {
+    onChange({ ...CHANNEL_DEFAULTS[newChannel as AiAgentChannel], channel: newChannel as AiAgentChannel })
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Canal */}
+      <FieldWrapper label="Canal">
+        <SelectInput
+          value={ch}
+          onChange={handleChannelChange}
+          options={AI_CHANNEL_OPTIONS}
+        />
+      </FieldWrapper>
+
+      {/* Volumen */}
+      <FieldWrapper label={VOLUME_LABEL[ch]}>
+        <NumberInput value={config.volumePerMonth} onChange={v => onChange({ volumePerMonth: v })} min={0} step={50} />
+      </FieldWrapper>
+
+      {/* Respuesta automática */}
+      <FieldWrapper
+        label={isVoice ? 'Resolución automática (%)' : 'Respuesta automática (%)'}
+        benchmark={isVoice ? 'Agente de voz entrenado: 55-70%' : 'Agente bien entrenado: 75-90%'}
+      >
+        <div className="space-y-1.5">
+          <NumberInput value={config.autoResponseRate} onChange={v => onChange({ autoResponseRate: v })} min={0} max={100} step={1} suffix="%" />
+          <SliderInput value={config.autoResponseRate} onChange={v => onChange({ autoResponseRate: v })} min={0} max={100} step={1} />
+        </div>
+      </FieldWrapper>
+
+      {/* Conversión */}
+      <FieldWrapper
+        label={isVoice ? 'Booking rate (%)' : 'Conversión / leads (%)'}
+        benchmark={isVoice ? 'Llamada de ventas: 15-25%' : 'Agente de ventas: 10-20%'}
+      >
+        <div className="space-y-1.5">
+          <NumberInput value={config.conversionRate} onChange={v => onChange({ conversionRate: v })} min={0} max={100} step={0.5} suffix="%" />
+          <SliderInput value={config.conversionRate} onChange={v => onChange({ conversionRate: v })} min={0} max={100} step={0.5} />
+        </div>
+      </FieldWrapper>
+
+      {/* Handoff a humano */}
+      {hasHandoff && (
+        <FieldWrapper label="Escalación a humano (%)" benchmark="Consultas complejas: 10-20%">
+          <div className="space-y-1.5">
+            <NumberInput value={config.humanHandoffRate} onChange={v => onChange({ humanHandoffRate: v })} min={0} max={100} step={1} suffix="%" />
+            <SliderInput value={config.humanHandoffRate} onChange={v => onChange({ humanHandoffRate: v })} min={0} max={100} step={1} />
+          </div>
+        </FieldWrapper>
+      )}
+
+      {/* Duración de llamada (solo voz) */}
+      {isVoice && (
+        <FieldWrapper label="Duración promedio (seg)" benchmark="Calificación: 90-180 seg">
+          <NumberInput value={config.avgCallDurationSec} onChange={v => onChange({ avgCallDurationSec: v })} min={0} step={15} />
+        </FieldWrapper>
+      )}
+
+      {/* Costo por unidad */}
+      {hasCost && (
+        <FieldWrapper
+          label={isVoice ? 'Costo por llamada ($)' : 'Costo por conversación ($)'}
+          benchmark={isVoice ? 'Voz IA: $0.08-0.25/min' : 'WhatsApp Business API: $0.03-0.08'}
+        >
+          <NumberInput value={config.costPerUnit} onChange={v => onChange({ costPerUnit: v })} min={0} step={0.01} prefix="$" />
+        </FieldWrapper>
+      )}
+
+      {/* CSAT (solo webchat) */}
+      {isWebChat && (
+        <FieldWrapper label="CSAT score (1-5)" benchmark="Buen servicio: 4+">
+          <SliderInput value={config.csatScore} onChange={v => onChange({ csatScore: v })} min={1} max={5} step={0.1} />
+        </FieldWrapper>
+      )}
+    </div>
+  )
+}
+
 function AiWhatsappForm({ config, onChange }: { config: AiWhatsappConfig; onChange: (p: Partial<AiWhatsappConfig>) => void }) {
   return (
     <div className="space-y-3">
@@ -3428,6 +3544,7 @@ export default function NodeConfigPanel() {
       case 'webinarReplay':        return <WebinarReplayForm config={config as WebinarReplayConfig} onChange={handleConfigChange} />
       case 'caseStudy':            return <CaseStudyForm config={config as CaseStudyConfig} onChange={handleConfigChange} />
       // ─── Agentes de IA ───
+      case 'aiAgent':              return <AiAgentForm config={config as AiAgentUnifiedConfig} onChange={handleConfigChange} />
       case 'aiWhatsapp':           return <AiWhatsappForm config={config as AiWhatsappConfig} onChange={handleConfigChange} />
       case 'aiWebChat':            return <AiWebChatForm config={config as AiWebChatConfig} onChange={handleConfigChange} />
       case 'aiVoice':              return <AiVoiceForm config={config as AiVoiceConfig} onChange={handleConfigChange} />

@@ -42,6 +42,7 @@ export type FunnelNodeType =
   | 'webinarReplay'
   | 'caseStudy'
   // ─── AI Agents ───
+  | 'aiAgent'
   | 'aiWhatsapp'
   | 'aiWebChat'
   | 'aiVoice'
@@ -663,6 +664,23 @@ export interface CaseStudyConfig {
 
 // ─── Agentes de IA y automatización ──────────────────────────────────────────
 
+export type AiAgentChannel = 'whatsapp' | 'webchat' | 'voice' | 'instagram' | 'facebook' | 'email'
+
+// Nodo unificado "Agente IA" — el canal se elige dentro del panel de config
+export interface AiAgentUnifiedConfig {
+  channel: AiAgentChannel
+  volumePerMonth: number       // mensajes / sesiones / llamadas / DMs / emails
+  autoResponseRate: number     // %, resolución automática
+  conversionRate: number       // %, leads o ventas generadas
+  humanHandoffRate: number     // %, escalación a humano
+  costPerUnit: number          // $ por mensaje/sesión/llamada (0 si no aplica)
+  // Voice-specific
+  avgCallDurationSec: number   // segundos (solo voz)
+  bookingRate: number          // % bookings (solo voz)
+  // WebChat-specific
+  csatScore: number            // 1-5 (solo webchat)
+}
+
 export interface AiWhatsappConfig {
   messagesPerMonth: number     // default 500
   autoResponseRate: number     // %, default 85
@@ -899,6 +917,7 @@ export type NodeConfig =
   | WebinarReplayConfig
   | CaseStudyConfig
   // ─── Agentes de IA ───
+  | AiAgentUnifiedConfig
   | AiWhatsappConfig
   | AiWebChatConfig
   | AiVoiceConfig

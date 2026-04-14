@@ -68,6 +68,7 @@ import type {
   ResourceTemplateConfig,
   WebinarReplayConfig,
   CaseStudyConfig,
+  AiAgentUnifiedConfig,
   AiWhatsappConfig,
   AiWebChatConfig,
   AiVoiceConfig,
@@ -1605,6 +1606,21 @@ export function runSimulation(
         break
 
       // ─── AI agents ───
+      case 'aiAgent': {
+        const cfg = config as AiAgentUnifiedConfig
+        const cost = cfg.volumePerMonth * (cfg.costPerUnit ?? 0)
+        const converted = Math.floor(visitorsIn * (cfg.autoResponseRate / 100) * (cfg.conversionRate / 100))
+        result = {
+          visitorsIn,
+          visitorsConverted: converted,
+          visitorsNotConverted: visitorsIn - converted,
+          revenue: 0,
+          cost,
+          leads: converted,
+          conversionRate: visitorsIn > 0 ? (converted / visitorsIn) * 100 : 0,
+        }
+        break
+      }
       case 'aiWhatsapp':
         result = calculateAiWhatsapp(visitorsIn, config as AiWhatsappConfig)
         break

@@ -1073,6 +1073,30 @@ export const NODE_DEFINITIONS: Record<FunnelNodeType, NodeDefinition> = {
 
   // ─── AI Agents ─────────────────────────────────────────────────────────────
 
+  aiAgent: {
+    type: 'aiAgent',
+    label: 'Agente IA',
+    category: 'ai',
+    description: 'Agente de IA multicanal — elegí WhatsApp, Web Chat, Voz, Instagram, Facebook o Email',
+    icon: 'Bot',
+    hasYesNoOutput: true,
+    hasSingleOutput: false,
+    hasBranchOutput: false,
+    hasInput: true,
+    defaultConfig: {
+      channel: 'whatsapp',
+      volumePerMonth: 500,
+      autoResponseRate: 85,
+      conversionRate: 12,
+      humanHandoffRate: 15,
+      costPerUnit: 0.05,
+      avgCallDurationSec: 0,
+      bookingRate: 0,
+      csatScore: 4,
+    },
+    fields: [],
+  },
+
   aiWhatsapp: {
     type: 'aiWhatsapp',
     label: 'Agente IA WhatsApp',
@@ -2137,7 +2161,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
     label: 'Agentes IA',
     color: NODE_COLORS.ai,
     nodes: [
-      'aiWhatsapp', 'aiWebChat', 'aiVoice', 'aiInstagramDm', 'aiEmail',
+      'aiAgent',
       'chatbotRules', 'automationWorkflow', 'aiLeadScoring', 'aiContentPersonalization', 'aiSegmentation',
     ],
   },
