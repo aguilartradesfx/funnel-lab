@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Sparkles, Send, Loader2, BarChart3, Wand2, FileText, Lightbulb, ChevronRight, Trash2 } from 'lucide-react'
+import { X, Sparkles, Send, Loader2, BarChart3, Wand2, FileText, Lightbulb, ChevronRight, Trash2, Download, ChevronDown } from 'lucide-react'
 import { useFunnelStore } from '@/stores/funnelStore'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ import type { FunnelRFNode, FunnelRFEdge, GlobalSimResults } from '@/lib/types'
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  funnelData?: FunnelJSONData | null
   credits_used?: number
   action_type?: string
   created_at?: string
@@ -29,33 +30,134 @@ interface FunnelJSONData {
 
 function extractFunnelJSON(content: string): {
   funnelData: FunnelJSONData | null
-  displayContent: string
+  preText: string
 } {
   const jsonMatch = content.match(/```json\n?([\s\S]*?)```/)
-  if (!jsonMatch) return { funnelData: null, displayContent: content }
+  if (!jsonMatch) return { funnelData: null, preText: content }
 
   try {
     const parsed = JSON.parse(jsonMatch[1]) as FunnelJSONData
     if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
-      return { funnelData: null, displayContent: content }
+      return { funnelData: null, preText: content }
     }
 
-    const nodeCount = parsed.nodes.length
-
-    // Conservar cualquier texto introductorio antes del bloque JSON
+    // Solo conservar el texto antes del bloque JSON; la tarjeta de importación reemplaza al bloque
     const jsonStart = content.indexOf('```json')
     const preText = jsonStart > 0 ? content.slice(0, jsonStart).trim() : ''
 
-    const parts: string[] = []
-    if (preText) parts.push(preText)
-    parts.push(
-      `¡Listo! Creé un funnel con **${nodeCount} nodo${nodeCount !== 1 ? 's' : ''}** en tu canvas. Revisalo y ajustá las métricas según tu negocio.`
-    )
-
-    return { funnelData: parsed, displayContent: parts.join('\n\n') }
+    return { funnelData: parsed, preText }
   } catch {
-    return { funnelData: null, displayContent: content }
+    return { funnelData: null, preText: content }
   }
+}
+
+// ─── Construye la cadena de nodos del funnel ──────────────────────────────────
+
+function buildNodeChain(data: FunnelJSONData): string {
+  const connections = data.connections ?? data.edges ?? []
+
+  // Mapa de índice → siguiente (solo paths principales: default o yes)
+  const next = new Map<number, number>()
+  for (const c of connections) {
+    const pt = c.path_type ?? 'default'
+    if ((pt === 'default' || pt === 'yes') && !next.has(c.from_index)) {
+      next.set(c.from_index, c.to_index)
+    }
+  }
+
+  // Nodo inicial = el que no es target de ninguna conexión
+  const targets = new Set(connections.map(c => c.to_index))
+  let current: number | undefined = data.nodes.findIndex((_, i) => !targets.has(i))
+  if (current < 0) current = 0
+
+  const chain: string[] = []
+  const visited = new Set<number>()
+  while (current !== undefined && !visited.has(current) && chain.length < 10) {
+    visited.add(current)
+    const node = data.nodes[current]
+    if (node) chain.push(node.label)
+    current = next.get(current)
+  }
+
+  const remaining = data.nodes.length - visited.size
+  if (remaining > 0) chain.push(`+${remaining} más`)
+
+  return chain.join(' → ')
+}
+
+// ─── Tarjeta de importación de funnel ────────────────────────────────────────
+
+function FunnelImportCard({ funnelData }: { funnelData: FunnelJSONData }) {
+  const importNodesFromAI = useFunnelStore(s => s.importNodesFromAI)
+  const [imported, setImported] = useState(false)
+  const [showJSON, setShowJSON] = useState(false)
+
+  const chain = buildNodeChain(funnelData)
+  const nodeCount = funnelData.nodes.length
+
+  const handleImport = () => {
+    importNodesFromAI(funnelData.nodes, funnelData.connections ?? funnelData.edges ?? [])
+    setImported(true)
+  }
+
+  return (
+    <div className="mt-2 rounded-xl overflow-hidden" style={{ border: '1px solid #2a2a2a' }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #222' }}>
+        <Wand2 size={11} className="text-orange-400 flex-shrink-0" />
+        <span className="text-[12px] font-semibold text-slate-200 truncate flex-1">
+          {funnelData.funnel_name ?? 'Funnel generado'}
+        </span>
+        <span className="text-[10px] text-slate-600 flex-shrink-0">{nodeCount} nodos</span>
+      </div>
+
+      {/* Cadena de nodos */}
+      <div className="px-3 py-2.5" style={{ backgroundColor: '#111' }}>
+        <p className="text-[11px] leading-relaxed" style={{ color: '#7a7a7a' }}>{chain}</p>
+      </div>
+
+      {/* Botones */}
+      <div className="flex gap-2 px-3 py-2.5" style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #222' }}>
+        {imported ? (
+          <p className="text-[11px] text-emerald-400 flex items-center gap-1.5 flex-1">
+            <span style={{ color: '#22c55e' }}>✓</span>
+            ¡Listo! Funnel importado con {nodeCount} nodos. Revisalo y ajustá las métricas.
+          </p>
+        ) : (
+          <button
+            onClick={handleImport}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-all"
+            style={{ backgroundColor: '#ea580c' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f97316')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#ea580c')}
+          >
+            <Download size={11} />
+            Importar al canvas
+          </button>
+        )}
+        <button
+          onClick={() => setShowJSON(s => !s)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] transition-colors"
+          style={{ border: '1px solid #2e2e2e', color: '#666' }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#aaa')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#666')}
+        >
+          <ChevronDown size={11} style={{ transform: showJSON ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+          Ver JSON
+        </button>
+      </div>
+
+      {/* JSON colapsable */}
+      {showJSON && (
+        <pre
+          className="px-3 py-2.5 text-[10px] font-mono overflow-x-auto overflow-y-auto"
+          style={{ backgroundColor: '#0a0a0a', borderTop: '1px solid #1e1e1e', color: '#555', maxHeight: 200 }}
+        >
+          {JSON.stringify(funnelData, null, 2)}
+        </pre>
+      )}
+    </div>
+  )
 }
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
@@ -291,7 +393,6 @@ export function AIPanelContent() {
   const simResults    = useFunnelStore(s => s.simResults)
   const projectName   = useFunnelStore(s => s.projectName)
   const projectId     = useFunnelStore(s => s.supabaseProjectId)
-  const importNodesFromAI = useFunnelStore(s => s.importNodesFromAI)
 
   const [messages, setMessages]         = useState<ChatMessage[]>([])
   const [input, setInput]               = useState('')
@@ -353,13 +454,14 @@ export function AIPanelContent() {
       .limit(60)
       .then(({ data }) => {
         if (data) {
-          // Procesar mensajes históricos: reemplazar JSON de funnel con mensaje amigable
-          // (sin importar al canvas — ya fue creado en su momento)
-          const processed = data.map(msg =>
-            msg.role === 'assistant'
-              ? { ...msg, content: extractFunnelJSON(msg.content).displayContent }
-              : msg
-          )
+          // Procesar mensajes históricos: extraer funnelData para mostrar la tarjeta de importación
+          const processed = data.map(msg => {
+            if (msg.role === 'assistant') {
+              const { funnelData, preText } = extractFunnelJSON(msg.content)
+              return { ...msg, content: funnelData ? preText : msg.content, funnelData }
+            }
+            return msg
+          })
           setMessages(processed as ChatMessage[])
         }
         setHistoryLoading(false)
@@ -411,30 +513,26 @@ export function AIPanelContent() {
         return
       }
 
-      // Detectar JSON de funnel en cualquier respuesta (no solo generate_funnel)
-      const { funnelData, displayContent } = extractFunnelJSON(data.content)
+      // Detectar JSON de funnel — mostrar tarjeta en lugar de auto-importar
+      const { funnelData, preText } = extractFunnelJSON(data.content)
 
       const assistantMsg: ChatMessage = {
         role: 'assistant',
-        content: displayContent,
+        content: funnelData ? preText : data.content,
+        funnelData: funnelData ?? null,
         credits_used: data.credits_used,
         action_type: actionType,
         created_at: new Date().toISOString(),
       }
       setMessages(prev => [...prev, assistantMsg])
       if (data.credits_left != null) setCreditsLeft(data.credits_left)
-
-      // Importar nodos al canvas si se detectó un funnel JSON válido
-      if (funnelData?.nodes && importNodesFromAI) {
-        importNodesFromAI(funnelData.nodes, funnelData.connections ?? funnelData.edges ?? [])
-      }
     } catch {
       setError('Error de red. Verificá tu conexión.')
       setMessages(prev => prev.slice(0, -1))
     } finally {
       setLoading(false)
     }
-  }, [loading, nodes, edges, simResults, projectName, projectId, importNodesFromAI])
+  }, [loading, nodes, edges, simResults, projectName, projectId])
 
   // ── Acción rápida ──────────────────────────────────────────────────────────
   const handleAction = (actionId: string) => {
@@ -555,19 +653,28 @@ export function AIPanelContent() {
 
               {messages.map((msg, i) => (
                 <div key={i} className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}>
-                  <div
-                    className={cn(
-                      'max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed',
-                      msg.role === 'user'
-                        ? 'bg-[#1e1e1e] text-slate-200 rounded-br-sm'
-                        : 'bg-[#141414] text-slate-300 rounded-bl-sm border border-[#242424]'
-                    )}
-                  >
-                    {msg.role === 'assistant'
-                      ? renderMarkdown(msg.content)
-                      : <p className="whitespace-pre-wrap">{msg.content}</p>
-                    }
-                  </div>
+                  {/* Burbuja de texto — no mostrar si es un mensaje de funnel sin pre-texto */}
+                  {(msg.role === 'user' || msg.content.trim()) && (
+                    <div
+                      className={cn(
+                        'max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed',
+                        msg.role === 'user'
+                          ? 'bg-[#1e1e1e] text-slate-200 rounded-br-sm'
+                          : 'bg-[#141414] text-slate-300 rounded-bl-sm border border-[#242424]'
+                      )}
+                    >
+                      {msg.role === 'assistant'
+                        ? renderMarkdown(msg.content)
+                        : <p className="whitespace-pre-wrap">{msg.content}</p>
+                      }
+                    </div>
+                  )}
+                  {/* Tarjeta de importación de funnel */}
+                  {msg.role === 'assistant' && msg.funnelData && (
+                    <div className="w-full max-w-[92%]">
+                      <FunnelImportCard funnelData={msg.funnelData} />
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 mt-0.5 px-1">
                     {msg.role === 'assistant' && msg.credits_used ? (
                       <span className="text-[10px] text-slate-700">−{msg.credits_used} crédito{msg.credits_used !== 1 ? 's' : ''}</span>

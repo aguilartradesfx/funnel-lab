@@ -74,13 +74,15 @@ REGLAS CRÍTICAS PARA GENERAR FUNNELS:
 6. Configurar siempre parámetros realistas — no dejar configs en 0 ni vacías
 7. Cada rama del funnel DEBE terminar llegando a result (conectar todos los caminos finales a result)
 8. El nodo "no" de upsell → va a downsell. El "no" de checkout → va a cartAbandonmentSeq o retargeting. El "no" de landingPage → va a retargeting o emailSequence de nurturing.
+9. FUNNELS ORGÁNICOS: Si el usuario pide un funnel 100% orgánico (sin ads), el retargeting DEBE usar cpc:0 (retargeting orgánico por email/contenido, sin costo). Solo usar cpc>0 si el usuario pide explícitamente retargeting pagado.
+10. CONFIGURACIÓN REALISTA DE CHECKOUT: abandonment 65% = conversionRate efectivo ~35%. Asegurate de que los configs generen visitantes suficientes para que los números sean significativos (mínimo 500-1000 visitas al inicio del funnel).
 
 ══ TRÁFICO (nodos de entrada — sin input, siempre primeros) ══
 trafficEntry — Contenedor de fuentes de tráfico. SIEMPRE el primer nodo. Salida: única (default).
-  Config: { "name":"Tráfico Principal", "sources":[{"id":"s1","name":"Facebook Ads","source":"facebook_ads","type":"paid","budget":1000,"costModel":"cpc","cpc":0.80,"ctr":2,"visitors":1250}], "totalVisitors":1250, "totalPaidVisitors":1250, "totalOrganicVisitors":0, "totalBudget":1000 }
-  CRÍTICO: totalVisitors debe coincidir con la suma de visitors de las fuentes.
+  Config PAGADO: { "name":"Tráfico Principal", "sources":[{"id":"s1","name":"Facebook Ads","source":"facebook_ads","type":"paid","budget":1000,"costModel":"cpc","cpc":0.80,"ctr":2,"visitors":1250}], "totalVisitors":1250, "totalPaidVisitors":1250, "totalOrganicVisitors":0, "totalBudget":1000 }
+  Config ORGÁNICO: { "name":"Tráfico Orgánico", "sources":[{"id":"s1","name":"YouTube","source":"youtube_organic","type":"organic","reach":50000,"engagementRate":3,"ctr":2,"visitors":3000},{"id":"s2","name":"Instagram Reels","source":"instagram_organic","type":"organic","reach":30000,"engagementRate":5,"ctr":3,"visitors":4500}], "totalVisitors":7500, "totalPaidVisitors":0, "totalOrganicVisitors":7500, "totalBudget":0 }
+  CRÍTICO: totalVisitors debe coincidir con la suma de visitors de las fuentes. Para orgánico totalBudget:0.
   source opciones: "facebook_ads","google_search","google_display","tiktok_ads","instagram_organic","tiktok_organic","youtube_organic","linkedin_organic","blog_seo","email","podcast","referrals"
-  Para orgánico usa type:"organic" y reach+engagementRate+ctr en vez de budget/cpc.
 
 paidTraffic — Tráfico pagado especializado. Salida: única (default).
   Config: { "platform":"meta", "costModel":"cpc", "budget":1000, "cpc":0.80, "cpm":10, "cpv":0.05, "ctr":2 }
@@ -122,6 +124,7 @@ physicalPos — Punto de venta físico. Config: { "walkInsPerMonth":200, "conver
 emailSequence — Secuencia de emails automatizada. Config: { "mode":"sequence", "emails":7, "openRate":35, "ctr":3, "conversionRate":5 }
 whatsappSms — Mensajes WhatsApp / SMS. Config: { "deliveryRate":85, "responseRate":40, "conversionRate":8 }
 retargeting — Retargeting a no-conversores. Config: { "captureRate":50, "cpc":0.40, "conversionRate":5 }
+  IMPORTANTE: cpc:0 para retargeting orgánico (email, contenido, DMs). cpc>0 solo con presupuesto real de ads.
 cartAbandonmentSeq — Recuperación de carrito abandonado. Config: { "emailCount":3, "openRate":45, "recoveryRate":10, "avgCartValue":85 }
 pushNotifications — Push notifications. Config: { "optInRate":45, "deliveryRate":90, "ctr":4, "postClickConversion":8 }
 dripCampaign — Drip campaign de nurturing. Config: { "duration":"1month", "emailCount":12, "openRate":22, "ctr":2.5, "sustainedEngagement":40, "eventualConversion":5 }
