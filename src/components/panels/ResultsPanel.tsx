@@ -8,116 +8,233 @@ import type { GlobalSimResults, SimRun } from '@/lib/types'
 
 // ─── Generación de PDF (HTML → print dialog) ─────────────────────────────
 
-function generateReportHTML(run: SimRun): string {
+function generateReportHTML(run: SimRun, logoUrl: string): string {
   const r = run.results
   const isProfit = r.netProfit >= 0
   const date = new Date(run.timestamp).toLocaleString('es-CR')
+
+  // ── SVG helpers ──────────────────────────────────────────────────────────
+
+  // Donut / arc chart
+  const donut = (val: string, pct: number, color: string): string => {
+    const radius = 32
+    const circ = 2 * Math.PI * radius
+    const dash = Math.min(Math.max(pct, 0), 1) * circ
+    const gap = circ - dash
+    return `<svg width="90" height="90" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="45" cy="45" r="${radius}" fill="none" stroke="#efefef" stroke-width="7"/>
+      <circle cx="45" cy="45" r="${radius}" fill="none" stroke="${color}" stroke-width="7"
+        stroke-dasharray="${dash.toFixed(1)} ${gap.toFixed(1)}"
+        stroke-linecap="round"
+        transform="rotate(-90 45 45)"/>
+      <text x="45" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#111"
+        font-family="-apple-system,BlinkMacSystemFont,sans-serif">${val}</text>
+    </svg>`
+  }
+
+  // Horizontal bar row
+  const bar = (label: string, val: number, max: number, color: string, formatted: string): string => {
+    const pct = max > 0 ? Math.min((val / max) * 100, 100) : 0
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+        <span style="font-size:11px;color:#6b7280;font-weight:500">${label}</span>
+        <span style="font-size:13px;font-weight:700;color:#111">${formatted}</span>
+      </div>
+      <div style="background:#f3f4f6;border-radius:6px;height:10px;overflow:hidden">
+        <div style="width:${pct.toFixed(1)}%;background:${color};height:100%;border-radius:6px"></div>
+      </div>
+    </div>`
+  }
+
+  // ── Computed values ───────────────────────────────────────────────────────
+  const roasPct   = Math.min(r.roas / 15, 1)
+  const profitPct = r.totalRevenue > 0 ? Math.min(Math.max(r.netProfit / r.totalRevenue, 0), 1) : 0
+  const bePct     = r.breakEvenVisitors > 0 ? Math.min(r.totalVisitors / r.breakEvenVisitors, 1) : 0
+  const beCirc    = 2 * Math.PI * 26
+  const beDash    = bePct * beCirc
+
+  const convLeads = r.totalVisitors > 0 ? formatPercent((r.totalLeads    / r.totalVisitors) * 100) : '—'
+  const convCust  = r.totalVisitors > 0 ? formatPercent((r.totalCustomers / r.totalVisitors) * 100) : '—'
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>Reporte de Simulación — ${run.projectName}</title>
+  <title>Reporte — ${run.projectName}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; background: #fff; padding: 40px; }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-    .meta { font-size: 12px; color: #666; margin-bottom: 32px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; background: #f3f4f6; }
+    .page { max-width: 800px; margin: 0 auto; background: #fff; }
+
+    /* Header */
+    .hdr { background: #0a0a0a; padding: 26px 36px 22px; display: flex; align-items: center; justify-content: space-between; }
+    .hdr-logo { height: 26px; width: auto; }
+    .hdr-right { text-align: right; }
+    .hdr-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+    .hdr-meta { font-size: 11px; color: #777; }
+    .hdr-bar { height: 3px; background: linear-gradient(90deg, #f97316 0%, #ea580c 100%); }
+
+    /* Body */
+    .body { padding: 28px 36px; }
     .section { margin-bottom: 28px; }
-    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .metric { border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 14px; }
-    .metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 4px; }
-    .metric-value { font-size: 18px; font-weight: 700; color: #111; font-variant-numeric: tabular-nums; }
-    .metric-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
-    .profit-positive { color: #16a34a; }
-    .profit-negative { color: #dc2626; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #eee; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #888; }
-    td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; color: #333; }
-    @media print { body { padding: 20px; } }
+    .s-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #f97316; margin-bottom: 14px; }
+
+    /* Donut cards row */
+    .donuts { display: flex; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+    .d-card { flex: 1; padding: 18px 12px 14px; text-align: center; border-right: 1px solid #e5e7eb; background: #fafafa; }
+    .d-card:last-child { border-right: none; }
+    .d-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 8px; }
+    .d-sub { font-size: 10px; font-weight: 600; margin-top: 5px; }
+    .green { color: #16a34a; } .red { color: #dc2626; } .orange { color: #f97316; } .indigo { color: #6366f1; }
+
+    /* Metric cards grid */
+    .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .mc { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
+    .mc-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; font-weight: 600; margin-bottom: 6px; }
+    .mc-val { font-size: 22px; font-weight: 800; color: #111; font-variant-numeric: tabular-nums; line-height: 1; }
+    .mc-sub { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+
+    /* Bars */
+    .bars-box { border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px 24px; background: #fafafa; }
+    .bars-footer { display: flex; gap: 24px; margin-top: 6px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+    .bars-footer span { font-size: 10px; color: #9ca3af; }
+
+    /* Break-even */
+    .be-box { display: flex; align-items: center; gap: 20px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 22px; background: #fafafa; }
+    .be-text-title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 4px; }
+    .be-text-sub { font-size: 11px; color: #6b7280; }
+
+    /* Footer */
+    .ftr { border-top: 1px solid #f0f0f0; padding: 12px 36px; display: flex; align-items: center; justify-content: space-between; background: #fafafa; }
+    .ftr-brand { font-size: 10px; color: #9ca3af; }
+    .ftr-logo { height: 16px; opacity: 0.35; }
+
+    @media print {
+      body { background: #fff; }
+      .page { max-width: 100%; box-shadow: none; }
+      .body { padding: 18px 24px; }
+      .hdr { padding: 18px 24px; }
+    }
   </style>
 </head>
 <body>
-  <h1>${run.projectName}</h1>
-  <p class="meta">Simulación ejecutada el ${date} · ${run.nodeCount} nodos</p>
+<div class="page">
 
-  <div class="section">
-    <div class="section-title">Resumen financiero</div>
-    <div class="grid">
-      <div class="metric">
-        <div class="metric-label">Revenue Total</div>
-        <div class="metric-value">${formatCurrency(r.totalRevenue)}</div>
-        <div class="metric-sub">${formatCurrencyFull(r.totalRevenue)}</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Costo Total</div>
-        <div class="metric-value">${formatCurrency(r.totalCost)}</div>
-        <div class="metric-sub">${formatCurrencyFull(r.totalCost)}</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Profit Neto</div>
-        <div class="metric-value ${isProfit ? 'profit-positive' : 'profit-negative'}">${isProfit ? '+' : ''}${formatCurrency(r.netProfit)}</div>
-        <div class="metric-sub">ROI: ${formatPercent(r.roi)}</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">ROAS</div>
-        <div class="metric-value">${formatRoas(r.roas)}</div>
-        <div class="metric-sub">Return on Ad Spend</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">CPA</div>
-        <div class="metric-value">${r.totalCustomers > 0 ? formatCurrency(r.cpa) : '—'}</div>
-        <div class="metric-sub">Costo por Adquisición</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">CPL</div>
-        <div class="metric-value">${r.totalLeads > 0 ? formatCurrency(r.cpl) : '—'}</div>
-        <div class="metric-sub">Costo por Lead</div>
-      </div>
+  <!-- Header -->
+  <div class="hdr">
+    <img src="${logoUrl}" class="hdr-logo" alt="FunnelLab" onerror="this.style.display='none'"/>
+    <div class="hdr-right">
+      <div class="hdr-title">${run.projectName}</div>
+      <div class="hdr-meta">${date} · ${run.nodeCount} nodos simulados</div>
     </div>
   </div>
+  <div class="hdr-bar"></div>
 
-  <div class="section">
-    <div class="section-title">Audiencia</div>
-    <div class="grid">
-      <div class="metric">
-        <div class="metric-label">Visitantes</div>
-        <div class="metric-value">${formatNumber(r.totalVisitors)}</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Leads</div>
-        <div class="metric-value">${formatNumber(r.totalLeads)}</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Clientes</div>
-        <div class="metric-value">${formatNumber(r.totalCustomers)}</div>
+  <div class="body">
+
+    <!-- Donut KPIs -->
+    <div class="section">
+      <div class="s-title">Métricas clave</div>
+      <div class="donuts">
+        <div class="d-card">
+          <div class="d-lbl">Revenue Total</div>
+          ${donut(formatCurrency(r.totalRevenue), r.totalRevenue > 0 ? 1 : 0, '#f97316')}
+          <div class="d-sub orange">${formatCurrencyFull(r.totalRevenue)}</div>
+        </div>
+        <div class="d-card">
+          <div class="d-lbl">Profit Neto</div>
+          ${donut((isProfit ? '+' : '') + formatCurrency(r.netProfit), profitPct, isProfit ? '#16a34a' : '#dc2626')}
+          <div class="d-sub ${isProfit ? 'green' : 'red'}">ROI ${formatPercent(r.roi)}</div>
+        </div>
+        <div class="d-card">
+          <div class="d-lbl">ROAS</div>
+          ${donut(formatRoas(r.roas), roasPct, '#6366f1')}
+          <div class="d-sub indigo">Return on Ad Spend</div>
+        </div>
       </div>
     </div>
+
+    <!-- Metric cards -->
+    <div class="section">
+      <div class="s-title">Desglose financiero</div>
+      <div class="metrics">
+        <div class="mc">
+          <div class="mc-lbl">Costo Total</div>
+          <div class="mc-val">${formatCurrency(r.totalCost)}</div>
+          <div class="mc-sub">${formatCurrencyFull(r.totalCost)}</div>
+        </div>
+        <div class="mc">
+          <div class="mc-lbl">CPA</div>
+          <div class="mc-val orange">${r.totalCustomers > 0 ? formatCurrency(r.cpa) : '—'}</div>
+          <div class="mc-sub">Costo por adquisición</div>
+        </div>
+        <div class="mc">
+          <div class="mc-lbl">CPL</div>
+          <div class="mc-val">${r.totalLeads > 0 ? formatCurrency(r.cpl) : '—'}</div>
+          <div class="mc-sub">Costo por lead</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audience funnel bars -->
+    <div class="section">
+      <div class="s-title">Embudo de audiencia</div>
+      <div class="bars-box">
+        ${bar('Visitantes', r.totalVisitors, r.totalVisitors, '#d1d5db', formatNumber(r.totalVisitors))}
+        ${bar('Leads', r.totalLeads, r.totalVisitors, '#f97316', formatNumber(r.totalLeads))}
+        ${bar('Clientes', r.totalCustomers, r.totalVisitors, '#16a34a', formatNumber(r.totalCustomers))}
+        <div class="bars-footer">
+          <span>Conv. a leads: <strong style="color:#f97316">${convLeads}</strong></span>
+          <span>Conv. a clientes: <strong style="color:#16a34a">${convCust}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    ${r.breakEvenVisitors > 0 ? `
+    <!-- Break-even -->
+    <div class="section">
+      <div class="s-title">Punto de equilibrio</div>
+      <div class="be-box">
+        <svg width="68" height="68" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+          <circle cx="34" cy="34" r="26" fill="none" stroke="#e5e7eb" stroke-width="6"/>
+          <circle cx="34" cy="34" r="26" fill="none" stroke="#f97316" stroke-width="6"
+            stroke-dasharray="${beDash.toFixed(1)} ${(beCirc - beDash).toFixed(1)}"
+            stroke-linecap="round"
+            transform="rotate(-90 34 34)"/>
+          <text x="34" y="38" text-anchor="middle" font-size="11" font-weight="700" fill="#111"
+            font-family="-apple-system,sans-serif">${Math.round(bePct * 100)}%</text>
+        </svg>
+        <div>
+          <div class="be-text-title">Break-even: ${formatNumber(r.breakEvenVisitors)} visitas</div>
+          <div class="be-text-sub">${r.totalVisitors >= r.breakEvenVisitors
+            ? '✓ Break-even alcanzado en esta simulación'
+            : `Faltan ${formatNumber(r.breakEvenVisitors - r.totalVisitors)} visitas para cubrir costos`
+          }</div>
+        </div>
+      </div>
+    </div>` : ''}
+
   </div>
 
-  ${r.breakEvenVisitors > 0 ? `
-  <div class="section">
-    <div class="section-title">Break-even</div>
-    <div class="metric" style="display:inline-block; min-width:200px">
-      <div class="metric-label">Visitas para cubrir costos</div>
-      <div class="metric-value">${formatNumber(r.breakEvenVisitors)}</div>
-      <div class="metric-sub">${Math.round((r.totalVisitors / r.breakEvenVisitors) * 100)}% alcanzado</div>
-    </div>
-  </div>` : ''}
+  <!-- Footer -->
+  <div class="ftr">
+    <span class="ftr-brand">Generado con FunnelLab · funnellab.io</span>
+    <img src="${logoUrl}" class="ftr-logo" alt="" onerror="this.style.display='none'"/>
+  </div>
 
-  <script>window.onload=()=>{window.print()}</script>
+</div>
+<script>window.onload = () => { window.print() }</script>
 </body>
 </html>`
 }
 
 function openPDF(run: SimRun) {
-  const html = generateReportHTML(run)
+  const logoUrl = `${window.location.origin}/logo.png`
+  const html = generateReportHTML(run, logoUrl)
   const blob = new Blob([html], { type: 'text/html' })
   const url = URL.createObjectURL(blob)
   const win = window.open(url, '_blank')
   if (!win) return
-  // Cleanup blob URL after print
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
 

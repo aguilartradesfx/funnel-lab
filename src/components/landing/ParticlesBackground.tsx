@@ -33,8 +33,9 @@ export default function ParticlesBackground() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const ctxRaw = canvas.getContext('2d')
+    if (!ctxRaw) return
+    const ctx: CanvasRenderingContext2D = ctxRaw
 
     let animId: number
     let W = window.innerWidth
@@ -52,7 +53,7 @@ export default function ParticlesBackground() {
     let targetScrollY = window.scrollY
     let smoothScrollY = window.scrollY
     let prevSmoothScrollY = window.scrollY
-    const LERP = 0.055 // lower = more lag; 0.055 ≈ comfortable delay
+    const LERP = 0.055
 
     // ── Particles ─────────────────────────────────────────────────────────────
     const PARTICLE_COUNT = 70
@@ -104,19 +105,15 @@ export default function ParticlesBackground() {
 
       // ── Draw particles ──────────────────────────────────────────────────────
       for (const p of particles) {
-        // Natural drift
         p.x += p.vx
         p.y += p.vy
-        // Scroll lag offset
         p.y -= scrollDelta
 
-        // Wrap around viewport
         if (p.x < 0) p.x = W
         if (p.x > W) p.x = 0
         if (p.y < -20) p.y = H + 20
         if (p.y > H + 20) p.y = -20
 
-        // Pulse opacity
         if (p.opacity < p.opacityTarget) {
           p.opacity = Math.min(p.opacity + p.opacitySpeed, p.opacityTarget)
         } else {
@@ -139,8 +136,6 @@ export default function ParticlesBackground() {
       // ── Draw lines ──────────────────────────────────────────────────────────
       for (let i = lines.length - 1; i >= 0; i--) {
         const l = lines[i]
-
-        // Scroll lag on lines too
         l.y -= scrollDelta
 
         if (l.phase === 'fadein') {
