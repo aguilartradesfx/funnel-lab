@@ -73,12 +73,6 @@ function ProjectName() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/logo.png"
-        alt="FunnelLab"
-        className="h-6 w-auto flex-shrink-0"
-      />
       {editing ? (
         <input
           ref={inputRef}
@@ -116,7 +110,7 @@ function ScenarioSelector() {
   if (scenarios.length === 0) return null
 
   const active = scenarios.find(s => s.id === activeScenarioId)
-  const maxScenarios = plan?.plan === 'agency' ? Infinity : plan?.plan === 'pro' ? 4 : 1
+  const maxScenarios = plan?.plan === 'max' ? Infinity : plan?.plan === 'pro' ? 4 : 1
   const canAdd = scenarios.length < maxScenarios
 
   return (
@@ -265,7 +259,7 @@ function UserMenu() {
   if (!user) return null
 
   const initials = user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
-  const planLabel = { starter: 'Starter', pro: 'Pro', agency: 'Agency' }[plan?.plan ?? 'pro'] ?? 'Pro'
+  const planLabel = { starter: 'Starter', pro: 'Pro', max: 'Max' }[plan?.plan ?? 'starter'] ?? 'Starter'
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -439,6 +433,8 @@ export default function EditorToolbar() {
       {/* Izquierda: back + logo + nombre + escenario */}
       <div className="flex items-center gap-2">
         <DashboardButton />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="FunnelLab" className="h-6 w-auto flex-shrink-0" />
         <div className="w-px h-4 bg-[#2e2e2e]" />
         <ProjectName />
         {scenarios.length > 0 && (

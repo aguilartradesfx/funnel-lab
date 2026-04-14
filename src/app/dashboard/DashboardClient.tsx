@@ -36,7 +36,7 @@ interface PlanInfo {
 const PLAN_LIMITS: Record<string, { projects: number; scenarios: number; label: string; color: string }> = {
   starter: { projects: 3, scenarios: 1, label: 'Starter', color: 'text-slate-400' },
   pro:     { projects: 10, scenarios: 4, label: 'Pro', color: 'text-orange-400' },
-  agency:  { projects: Infinity, scenarios: Infinity, label: 'Agency', color: 'text-purple-400' },
+  max:     { projects: Infinity, scenarios: Infinity, label: 'Max', color: 'text-purple-400' },
 }
 
 // ─── UserAvatar ───────────────────────────────────────────────────────────────
@@ -332,9 +332,9 @@ export default function DashboardClient({
   const [renaming, setRenaming] = useState<Project | null>(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
-  const planInfo = PLAN_LIMITS[plan.plan] ?? PLAN_LIMITS.pro
+  const planInfo = PLAN_LIMITS[plan.plan] ?? PLAN_LIMITS.starter
   const creditsLeft = (plan.monthly_credits_total - plan.monthly_credits_used) + plan.pack_credits
-  const canCreate = plan.plan === 'agency' || projects.length < planInfo.projects
+  const canCreate = plan.plan === 'max' || projects.length < planInfo.projects
 
   const filtered = projects.filter(p =>
     p.title.toLowerCase().includes(search.toLowerCase())
@@ -455,7 +455,7 @@ export default function DashboardClient({
             <Zap size={15} className="flex-shrink-0" />
             <span>
               Te quedan <strong>{creditsLeft} créditos</strong> de IA.{' '}
-              <button className="underline hover:text-orange-200">Comprar más</button>
+              <button onClick={() => router.push('/pricing')} className="underline hover:text-orange-200">Comprar más</button>
             </span>
           </div>
         )}
