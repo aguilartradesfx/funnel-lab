@@ -21,6 +21,7 @@ import type {
   Blueprint,
   SimRun,
   Product,
+  PathType,
 } from '@/lib/types'
 import { NODE_DEFINITIONS } from '@/lib/nodeDefinitions'
 import { runSimulation, getNodeSimOrder } from '@/lib/simulation'
@@ -410,7 +411,7 @@ function fixEdgePathTypes(nodes: FunnelRFNode[], edges: FunnelRFEdge[]): FunnelR
       ...e,
       sourceHandle: correctHandle,
       targetHandle: 'input-left',
-      data: { ...e.data, pathType: fix.path_type },
+      data: { ...e.data, pathType: fix.path_type as PathType },
     }
   })
 
