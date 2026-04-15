@@ -147,10 +147,7 @@ export interface LandingPageConfig {
 }
 
 export interface SalesPageConfig {
-  conversionRate: number  // %
-  price: number
-  productId?: string
-  useManualPrice?: boolean
+  conversionRate: number  // % — solo filtra visitantes, NO genera revenue
 }
 
 export interface CheckoutConfig {

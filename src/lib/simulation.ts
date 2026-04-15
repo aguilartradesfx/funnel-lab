@@ -179,16 +179,16 @@ function calculateLandingPage(visitorsIn: number, config: LandingPageConfig): No
   }
 }
 
-function calculateSalesPage(visitorsIn: number, config: SalesPageConfig, hasCheckoutDownstream = true): NodeSimResult {
+function calculateSalesPage(visitorsIn: number, config: SalesPageConfig): NodeSimResult {
+  // Página de ventas es un nodo FILTRO: convierte visitantes en interesados que van al Checkout.
+  // NUNCA genera revenue directamente — el revenue lo genera el Checkout que sigue.
   const converted = Math.floor(visitorsIn * (config.conversionRate / 100))
   const notConverted = visitorsIn - converted
-  // Solo genera revenue en funnel simplificado (sin checkout después)
-  const revenue = !hasCheckoutDownstream && config.price > 0 ? converted * config.price : 0
   return {
     visitorsIn,
     visitorsConverted: converted,
     visitorsNotConverted: notConverted,
-    revenue,
+    revenue: 0,
     cost: 0,
     leads: 0,
     conversionRate: config.conversionRate,
@@ -1509,7 +1509,7 @@ export function runSimulation(
         result = calculateLandingPage(visitorsIn, config as LandingPageConfig)
         break
       case 'salesPage':
-        result = calculateSalesPage(visitorsIn, config as SalesPageConfig, nodesWithPaymentDownstream.has(nodeId))
+        result = calculateSalesPage(visitorsIn, config as SalesPageConfig)
         break
       case 'checkout':
         result = calculateCheckout(visitorsIn, config as CheckoutConfig)
@@ -1948,7 +1948,7 @@ export function runSimulation(
 
   // Nodos que generan ventas (contados como compradores)
   const salesNodeTypes: FunnelNodeType[] = [
-    'checkout', 'salesPage', 'upsell', 'downsell', 'orderBump', 'webinarVsl', 'appointment',
+    'checkout', 'upsell', 'downsell', 'orderBump', 'webinarVsl', 'appointment',
     'tripwire', 'applicationPage', 'thankYouOffer', 'productDemo',
     'outboundCall', 'inboundCall', 'salesProposal', 'trialToPaid',
     'physicalPos', 'eventSales', 'crossSell', 'renewalUpsell', 'recurringRevenueNode',

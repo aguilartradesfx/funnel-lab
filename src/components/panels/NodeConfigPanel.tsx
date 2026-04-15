@@ -1196,21 +1196,16 @@ function LandingPageForm({ config, onChange }: { config: LandingPageConfig; onCh
 function SalesPageForm({ config, onChange }: { config: SalesPageConfig; onChange: (c: Partial<SalesPageConfig>) => void }) {
   return (
     <div className="space-y-4">
+      <div className="px-3 py-2 rounded-lg text-[11px] leading-relaxed" style={{ backgroundColor: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)', color: '#a3a3a3' }}>
+        Nodo de <strong style={{ color: '#f97316' }}>filtro</strong>: convierte visitantes en interesados que pasan al Checkout. El precio y el revenue van en el nodo <strong style={{ color: '#fff' }}>Checkout</strong>.
+      </div>
       <PercentField
         label="Tasa de conversión"
-        tooltip="Porcentaje de visitantes que compran en esta página"
-        benchmark="Sales pages: 1-5% | Con video: 3-8% | Alta ticket: 1-2%"
+        tooltip="% de visitantes que hacen clic en 'Comprar' y pasan al Checkout"
+        benchmark="Sales pages: 1-5% | Con VSL: 3-8% | Alta ticket: 1-2%"
         value={config.conversionRate}
         onChange={v => onChange({ conversionRate: v })}
         max={30} step={0.1}
-      />
-      <ProductSelector
-        productId={config.productId}
-        useManualPrice={config.useManualPrice}
-        price={config.price}
-        onChange={patch => onChange(patch as Partial<SalesPageConfig>)}
-        priceLabel="Precio del producto"
-        priceBenchmark="Infoproductos: $27-$497 | Software: $37-$197/mes"
       />
     </div>
   )

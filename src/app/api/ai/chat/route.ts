@@ -77,6 +77,39 @@ REGLAS CRÍTICAS PARA GENERAR FUNNELS:
 9. FUNNELS ORGÁNICOS: Si el usuario pide un funnel 100% orgánico (sin ads), el retargeting DEBE usar cpc:0 (retargeting orgánico por email/contenido, sin costo). Solo usar cpc>0 si el usuario pide explícitamente retargeting pagado.
 10. CONFIGURACIÓN REALISTA DE CHECKOUT: abandonment 65% = conversionRate efectivo ~35%. Asegurate de que los configs generen visitantes suficientes para que los números sean significativos (mínimo 500-1000 visitas al inicio del funnel).
 
+══════════════════════════════════════════════════════════
+REGLAS DE ESTRUCTURA DE FUNNELS — OBLIGATORIAS
+══════════════════════════════════════════════════════════
+
+R1. RESULTADO SIEMPRE DESPUÉS DE UN NODO DE PAGO.
+NUNCA conectar ningún nodo directamente a "result" a menos que antes haya pasado por al menos un nodo de cobro (checkout, upsell, downsell, orderBump, webinarVsl, appointment, salesProposal, tripwire, trialToPaid, digitalContract, outboundCall, inboundCall, eventSales). El "result" es el nodo final que resume el revenue — si no hubo cobro previo, el funnel no tiene sentido comercial.
+❌ MAL: trafficEntry → landingPage → emailSequence → result
+✅ BIEN: trafficEntry → landingPage → emailSequence → salesPage → checkout → result
+
+R2. PÁGINA DE VENTAS (salesPage) ES UN NODO FILTRO — NUNCA GENERA REVENUE.
+salesPage solo convierte visitantes en interesados (% de CTR al checkout). NO tiene precio, NO genera dinero. El precio del producto VA en el Checkout. Cuando generes un funnel con salesPage, SIEMPRE incluí un checkout inmediatamente después.
+❌ MAL: salesPage → result
+✅ BIEN: salesPage → checkout → result
+Secuencia correcta completa: tráfico → (landing?) → (email?) → salesPage → checkout → (upsell/orderBump?) → result
+Config de salesPage: SOLO { "conversionRate": 3 } — sin "price", sin "productId".
+
+R3. CHECKOUT = ÚNICO NODO DE COBRO DEL PRODUCTO PRINCIPAL.
+El precio del producto va en checkout.price. La tasa de abandono del checkout representa quienes no completan el pago (normal: 60-70% e-commerce, 30-50% servicios). El "yes" de checkout = compraron. El "no" de checkout = abandonaron (conectar a cartAbandonmentSeq o retargeting si se desea recuperar).
+
+R4. FLUJO LINEAL LÓGICO — NO SALTAR PASOS.
+El flujo siempre respeta este orden: Tráfico → Captación/Filtro → Nurturing → Venta → Post-venta → Resultado.
+NUNCA conectar un nodo de nurturing (emailSequence, whatsappSms) directo a result.
+NUNCA conectar un nodo de recuperación (retargeting, cartAbandonmentSeq) directo a result.
+Los nodos de recuperación siempre reentran al flujo de venta (van a landingPage, salesPage o checkout, no a result).
+
+R5. FUENTES DE TRÁFICO ORGÁNICO CON DATOS ESPECÍFICOS.
+Si el usuario menciona fuentes con números concretos (ej: "YouTube 3,500 views por video, 2 videos/mes"), calcular y configurar con esos datos:
+- Calcular visitantes: 3,500 × 2 = 7,000 views/mes × CTR estimado 3% = 210 visitantes
+- Hacer el mismo cálculo para cada fuente mencionada
+- El trafficEntry debe tener sources[] completo con todos los campos: { id, name, source, type, reach, ctr, visitors }
+- totalVisitors = suma de todos los visitors. Para orgánico: totalBudget:0.
+NUNCA generar un trafficEntry con sources[] vacío cuando el usuario dio datos de tráfico.
+
 ══ TRÁFICO (nodos de entrada — sin input, siempre primeros) ══
 trafficEntry — Contenedor de fuentes de tráfico. SIEMPRE el primer nodo. Salida: única (default).
   Config PAGADO: { "name":"Tráfico Principal", "sources":[{"id":"s1","name":"Facebook Ads","source":"facebook_ads","type":"paid","budget":1000,"costModel":"cpc","cpc":0.80,"ctr":2,"visitors":1250}], "totalVisitors":1250, "totalPaidVisitors":1250, "totalOrganicVisitors":0, "totalBudget":1000 }
@@ -94,7 +127,7 @@ organicTraffic — Canal orgánico. Salida: única (default).
 
 ══ PÁGINAS (salida yes=convierten / no=no convierten) ══
 landingPage — Landing page / captura de leads. Config: { "conversionRate":30, "bounceRate":55 }
-salesPage — Página de ventas con precio. Config: { "conversionRate":3, "price":97 }
+salesPage — Página de ventas (SOLO FILTRO, sin revenue). Config: { "conversionRate":3 } — NO tiene precio. SIEMPRE debe ir seguida de checkout.
 applicationPage — Formulario de aplicación. Config: { "completionRate":25, "qualificationRate":40, "formFields":5 }
 tripwire — Oferta de entrada low-ticket ($7-$27). Config: { "price":7, "conversionRate":15, "processorFee":3.5 }
 pricingPage — Tabla de precios SaaS. Config: { "conversionRate":5, "popularPlan":"pro", "annualPct":30, "avgTimeOnPage":120 }
@@ -236,7 +269,7 @@ function extractKeyMetrics(node: { type: string; config: Record<string, any> }) 
     case 'landingPage':
       return { conversión: `${c.conversionRate ?? c.conversion_rate}%` }
     case 'salesPage':
-      return { conversión: `${c.conversionRate ?? c.conversion_rate}%`, precio: c.price ? `$${c.price}` : undefined }
+      return { conversión: `${c.conversionRate ?? c.conversion_rate}%` }
     case 'checkout':
       return { precio: `$${c.price}`, abandono: `${c.abandonmentRate ?? c.abandonment_rate}%` }
     case 'upsell': case 'downsell': case 'orderBump':

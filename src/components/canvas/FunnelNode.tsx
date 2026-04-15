@@ -495,12 +495,7 @@ function NodeMetrics({
     case 'landingPage':
       return <MetricRow label="Conversión" value={formatPercent(c.conversionRate as number)} highlight />
     case 'salesPage':
-      return (
-        <div className="space-y-1">
-          <MetricRow label="Conversión" value={formatPercent(c.conversionRate as number)} highlight />
-          <MetricRow label="Precio" value={formatCurrency(c.price as number)} />
-        </div>
-      )
+      return <MetricRow label="Conversión" value={formatPercent(c.conversionRate as number)} highlight />
     case 'checkout':
       return (
         <div className="space-y-1">
