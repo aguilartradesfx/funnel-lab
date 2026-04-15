@@ -584,13 +584,25 @@ export async function POST(req: Request) {
     for (const m of recentMessages) {
       messages.push({ role: m.role as 'user' | 'assistant', content: m.content })
     }
-    messages.push({ role: 'user', content: message })
+
+    // ── Detección de generación de funnel — inyectar instrucción de formato ──
+    // Si el usuario pide generar un funnel, forzar al modelo a responder con JSON
+    // Se modifica solo el mensaje que ve la IA; la DB guarda el mensaje original.
+    const isFunnelGenRequest =
+      actionType === 'generate_funnel' ||
+      /genera[rá]?\s+(un\s+)?funnel|crea[rá]?\s+(un\s+)?funnel|arm[aá]\s+(un\s+)?funnel|hac[eé]me\s+(un\s+)?funnel|generame\s+(un\s+)?funnel|creame\s+(un\s+)?funnel/i.test(message)
+
+    const aiMessage = isFunnelGenRequest
+      ? `${message}\n\n⚠️ FORMATO OBLIGATORIO: Respondé con el JSON completo del funnel dentro de un bloque \`\`\`json ... \`\`\`. Podés incluir análisis ANTES del bloque JSON, pero el JSON SIEMPRE debe estar presente con "funnel_name", "nodes" y "connections". Sin el JSON el sistema no puede crear el funnel.`
+      : message
+
+    messages.push({ role: 'user', content: aiMessage })
 
     // ── 4. Llamar a Anthropic directamente ───────────────────────────────────
     // El system prompt se cachea con cache_control ephemeral → ~90% ahorro en tokens de sistema
     const response = await anthropic.messages.create({
       model: MODEL_SONNET,
-      max_tokens: 1500,
+      max_tokens: isFunnelGenRequest ? 3500 : 1500,
       system: [
         {
           type: 'text',
