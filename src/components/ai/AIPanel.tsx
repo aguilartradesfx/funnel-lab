@@ -31,7 +31,7 @@ interface FunnelJSONData {
 function tryParseFunnelJSON(raw: string): FunnelJSONData | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed = JSON.parse(raw) as any
+    const parsed = JSON.parse(raw.trim()) as any
     if (!parsed?.nodes || !Array.isArray(parsed.nodes) || parsed.nodes.length === 0) return null
     return {
       funnel_name: parsed.funnel_name,
@@ -43,29 +43,45 @@ function tryParseFunnelJSON(raw: string): FunnelJSONData | null {
   }
 }
 
+// Versión tolerante: si hay texto antes/después del JSON dentro del fence, lo extrae igual
+function tryParseFunnelJSONLenient(raw: string): FunnelJSONData | null {
+  const direct = tryParseFunnelJSON(raw)
+  if (direct) return direct
+  // Intentar extraer solo el objeto { ... } ignorando texto alrededor
+  const firstBrace = raw.indexOf('{')
+  const lastBrace = raw.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return tryParseFunnelJSON(raw.slice(firstBrace, lastBrace + 1))
+  }
+  return null
+}
+
 function extractFunnelJSON(content: string): {
   funnelData: FunnelJSONData | null
   preText: string
 } {
-  // Intento 1: bloque ``` json ``` (con o sin mayúsculas)
-  const fenceMatch = content.match(/```[Jj][Ss][Oo][Nn]\n?([\s\S]*?)```/)
-  if (fenceMatch) {
-    const funnelData = tryParseFunnelJSON(fenceMatch[1])
-    if (funnelData) {
-      const jsonStart = content.search(/```[Jj][Ss][Oo][Nn]/)
-      const preText = jsonStart > 0 ? content.slice(0, jsonStart).trim() : ''
-      return { funnelData, preText }
-    }
+  // Intento 1: bloque ```json``` (cualquier capitalización, espacios opcionales tras el lang tag)
+  // SIEMPRE eliminar el bloque del preText — raw JSON NUNCA debe aparecer en el chat
+  const fenceRegex = /```[Jj][Ss][Oo][Nn][^\n]*\n([\s\S]*?)```/
+  const fenceExec = fenceRegex.exec(content)
+  if (fenceExec) {
+    const before = content.slice(0, fenceExec.index).trim()
+    const after = content.slice(fenceExec.index + fenceExec[0].length).trim()
+    const preText = [before, after].filter(Boolean).join('\n\n')
+    const funnelData = tryParseFunnelJSONLenient(fenceExec[1])
+    return { funnelData, preText }
   }
 
   // Intento 2: JSON sin código cercado — la IA lo volcó como texto plano
-  // Busca desde el primer { hasta el último } e intenta parsear
   const firstBrace = content.indexOf('{')
   const lastBrace = content.lastIndexOf('}')
   if (firstBrace !== -1 && lastBrace > firstBrace) {
-    const funnelData = tryParseFunnelJSON(content.slice(firstBrace, lastBrace + 1))
+    const candidateJSON = content.slice(firstBrace, lastBrace + 1)
+    const funnelData = tryParseFunnelJSON(candidateJSON)
     if (funnelData) {
-      const preText = firstBrace > 0 ? content.slice(0, firstBrace).trim() : ''
+      const before = content.slice(0, firstBrace).trim()
+      const after = content.slice(lastBrace + 1).trim()
+      const preText = [before, after].filter(Boolean).join('\n\n')
       return { funnelData, preText }
     }
   }
@@ -265,13 +281,14 @@ function renderMarkdown(text: string): React.ReactNode {
         i++
       }
 
-      // Interceptar bloques JSON que contengan un funnel (campo "nodes") — case insensitive
+      // NUCLEAR: bloques JSON → nunca mostrar como <pre>, siempre interceptar
       if (lang.toLowerCase() === 'json') {
-        const funnelData = tryParseFunnelJSON(codeLines.join('\n'))
+        const funnelData = tryParseFunnelJSONLenient(codeLines.join('\n'))
         if (funnelData) {
           blocks.push(<FunnelImportCard key={i} funnelData={funnelData} />)
-          i++; continue
         }
+        // Si no es un funnel válido, silenciar — raw JSON NUNCA aparece en el chat
+        i++; continue
       }
 
       blocks.push(
@@ -500,11 +517,11 @@ export function AIPanelContent() {
       .limit(60)
       .then(({ data }) => {
         if (data) {
-          // Procesar mensajes históricos: extraer funnelData para mostrar la tarjeta de importación
+          // Procesar mensajes históricos: siempre strip el JSON fence del content
           const processed = data.map(msg => {
             if (msg.role === 'assistant') {
               const { funnelData, preText } = extractFunnelJSON(msg.content)
-              return { ...msg, content: funnelData ? preText : msg.content, funnelData }
+              return { ...msg, content: preText, funnelData }
             }
             return msg
           })
@@ -559,12 +576,12 @@ export function AIPanelContent() {
         return
       }
 
-      // Detectar JSON de funnel — mostrar tarjeta en lugar de auto-importar
+      // Detectar JSON de funnel — siempre strip el fence del content
       const { funnelData, preText } = extractFunnelJSON(data.content)
 
       const assistantMsg: ChatMessage = {
         role: 'assistant',
-        content: funnelData ? preText : data.content,
+        content: preText,
         funnelData: funnelData ?? null,
         credits_used: data.credits_used,
         action_type: actionType,
