@@ -101,6 +101,15 @@ export function computeSourceVisitors(source: TrafficEntrySource): number {
     } else if (costModel === 'cpv') {
       const views = source.cpv && source.cpv > 0 ? Math.floor(budget / source.cpv) : 0
       return Math.floor(views * ((source.ctr ?? 0) / 100))
+    } else if (costModel === 'cpl') {
+      // CPL: pagás X por lead → leads = budget / cpl
+      return source.cpl && source.cpl > 0 ? Math.floor(budget / source.cpl) : 0
+    } else if (costModel === 'cpa') {
+      // CPA: pagás X por adquisición → adquisiciones = budget / cpa
+      // visitantes = adquisiciones / (conversionRate / 100)
+      const acquisitions = source.cpa && source.cpa > 0 ? budget / source.cpa : 0
+      const convRate = (source.conversionRate ?? 0) / 100
+      return convRate > 0 ? Math.floor(acquisitions / convRate) : Math.floor(acquisitions)
     }
   } else {
     const src = source.source
@@ -146,6 +155,14 @@ function calculateTrafficSource(config: TrafficSourceConfig): NodeSimResult {
     cost = 0
   } else if (config.costModel === 'cpc') {
     visitorsOut = config.cpc > 0 ? Math.floor(config.budget / config.cpc) : 0
+    cost = config.budget
+  } else if (config.costModel === 'cpl') {
+    visitorsOut = config.cpl && config.cpl > 0 ? Math.floor(config.budget / config.cpl) : 0
+    cost = config.budget
+  } else if (config.costModel === 'cpa') {
+    const acquisitions = config.cpa && config.cpa > 0 ? config.budget / config.cpa : 0
+    const convRate = (config.conversionRate ?? 0) / 100
+    visitorsOut = convRate > 0 ? Math.floor(acquisitions / convRate) : Math.floor(acquisitions)
     cost = config.budget
   } else {
     // CPM
@@ -839,6 +856,12 @@ function calculatePaidTraffic(config: PaidTrafficConfig): NodeSimResult {
   } else if (config.costModel === 'cpv') {
     const views = config.cpv > 0 ? Math.floor(config.budget / config.cpv) : 0
     visitorsOut = Math.floor(views * (config.ctr / 100))
+  } else if (config.costModel === 'cpl') {
+    visitorsOut = config.cpl && config.cpl > 0 ? Math.floor(config.budget / config.cpl) : 0
+  } else if (config.costModel === 'cpa') {
+    const acquisitions = config.cpa && config.cpa > 0 ? config.budget / config.cpa : 0
+    const convRate = (config.conversionRate ?? 0) / 100
+    visitorsOut = convRate > 0 ? Math.floor(acquisitions / convRate) : Math.floor(acquisitions)
   }
 
   return {

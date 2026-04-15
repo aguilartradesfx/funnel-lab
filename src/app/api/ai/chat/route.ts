@@ -210,7 +210,13 @@ trafficEntry — Contenedor de fuentes de tráfico. SIEMPRE el primer nodo. Sali
   source opciones: "facebook_ads","google_search","google_display","tiktok_ads","instagram_organic","tiktok_organic","youtube_organic","linkedin_organic","blog_seo","email","podcast","referrals"
 
 paidTraffic — Tráfico pagado especializado. Salida: única (default).
-  Config: { "platform":"meta", "costModel":"cpc", "budget":1000, "cpc":0.80, "cpm":10, "cpv":0.05, "ctr":2 }
+  Config CPC: { "platform":"meta", "costModel":"cpc", "budget":1000, "cpc":0.80, "ctr":2 }
+  Config CPM: { "platform":"meta", "costModel":"cpm", "budget":1000, "cpm":8.50, "ctr":1.5 }
+  Config CPV: { "platform":"youtube", "costModel":"cpv", "budget":1000, "cpv":0.10, "ctr":3 }
+  Config CPL: { "platform":"meta", "costModel":"cpl", "budget":1000, "cpl":15 }
+    → visitantes = presupuesto / cpl (pagás por cada lead que entra al funnel)
+  Config CPA: { "platform":"meta", "costModel":"cpa", "budget":1000, "cpa":50, "conversionRate":2 }
+    → adquisiciones = presupuesto / cpa | visitantes = adquisiciones / (conversionRate/100)
   platform: "meta"|"googleSearch"|"googleDisplay"|"youtube"|"tiktok"|"linkedin"|"twitter"|"pinterest"|"other"
 
 organicTraffic — Canal orgánico. Salida: única (default).

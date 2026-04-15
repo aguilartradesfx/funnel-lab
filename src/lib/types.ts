@@ -133,12 +133,15 @@ export interface Product {
 
 export interface TrafficSourceConfig {
   platform: 'facebook' | 'google' | 'tiktok' | 'organic' | 'email' | 'whatsapp' | 'sms' | 'referral' | 'other'
-  costModel: 'cpc' | 'cpm' | 'organic'
+  costModel: 'cpc' | 'cpm' | 'organic' | 'cpa' | 'cpl'
   budget: number
   cpc: number
   cpm: number
   ctr: number         // %
   monthlyVisitors: number // para tráfico orgánico
+  cpa?: number        // costo por adquisición
+  cpl?: number        // costo por lead
+  conversionRate?: number // % — necesario para retro-calcular visitantes desde CPA
 }
 
 export interface LandingPageConfig {
@@ -467,10 +470,13 @@ export interface TrafficEntrySource {
   type: 'paid' | 'organic'
   // Campos pagados
   budget?: number
-  costModel?: 'cpc' | 'cpm' | 'cpv'
+  costModel?: 'cpc' | 'cpm' | 'cpv' | 'cpa' | 'cpl'
   cpc?: number
   cpm?: number
   cpv?: number
+  cpa?: number        // costo por adquisición
+  cpl?: number        // costo por lead
+  conversionRate?: number // % — para retro-calcular visitantes desde CPA
   ctr?: number
   // Campos orgánicos estándar
   reach?: number
@@ -505,11 +511,14 @@ export type PaidTrafficPlatform =
 export interface PaidTrafficConfig {
   platform: PaidTrafficPlatform
   platformLabel?: string          // solo cuando platform === 'other'
-  costModel: 'cpc' | 'cpm' | 'cpv'
+  costModel: 'cpc' | 'cpm' | 'cpv' | 'cpa' | 'cpl'
   budget: number                  // presupuesto mensual $
   cpc: number                     // costo por clic
   cpm: number                     // costo por mil impresiones
   cpv: number                     // costo por vista (YouTube)
+  cpa?: number                    // costo por adquisición
+  cpl?: number                    // costo por lead
+  conversionRate?: number         // % — para retro-calcular visitantes desde CPA
   ctr: number                     // CTR % (para CPM y CPV)
 }
 
