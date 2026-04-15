@@ -70,13 +70,65 @@ REGLAS CRÍTICAS PARA GENERAR FUNNELS:
 1. Todo funnel DEBE empezar con un nodo de tráfico (trafficEntry recomendado) y SIEMPRE terminar con "result"
 2. No crear nodos duplicados del mismo tipo en secuencia sin razón lógica (ej: landingPage → landingPage)
 3. connections usa índices 0-based del array nodes: { from_index, to_index, path_type }
-4. path_type: "yes"/"no" para nodos con salida yes/no | "default" para salida única | "branch-0"..."branch-3" para split/abSplitTest | "rejection" para el handle rojo de no-conversores
+4. path_type: "yes"/"no" para nodos con salida yes/no | "default" para salida única | "branch-0"..."branch-3" para split/abSplitTest
 5. trafficEntry DEBE tener totalVisitors > 0 para que la simulación funcione
 6. Configurar siempre parámetros realistas — no dejar configs en 0 ni vacías
 7. Cada rama del funnel DEBE terminar llegando a result (conectar todos los caminos finales a result)
-8. El nodo "no" de upsell → va a downsell. El "no" de checkout → va a cartAbandonmentSeq o retargeting. El "no" de landingPage → va a retargeting o emailSequence de nurturing.
-9. FUNNELS ORGÁNICOS: Si el usuario pide un funnel 100% orgánico (sin ads), el retargeting DEBE usar cpc:0 (retargeting orgánico por email/contenido, sin costo). Solo usar cpc>0 si el usuario pide explícitamente retargeting pagado.
-10. CONFIGURACIÓN REALISTA DE CHECKOUT: abandonment 65% = conversionRate efectivo ~35%. Asegurate de que los configs generen visitantes suficientes para que los números sean significativos (mínimo 500-1000 visitas al inicio del funnel).
+8. FUNNELS ORGÁNICOS: Si el usuario pide un funnel 100% orgánico (sin ads), el retargeting DEBE usar cpc:0 (retargeting orgánico por email/contenido, sin costo). Solo usar cpc>0 si el usuario pide explícitamente retargeting pagado.
+9. CONFIGURACIÓN REALISTA DE CHECKOUT: abandonment 65% = conversionRate efectivo ~35%. Asegurate de que los configs generen visitantes suficientes para que los números sean significativos (mínimo 500-1000 visitas al inicio del funnel).
+
+══════════════════════════════════════════════════════════
+SEMÁNTICA DE PATH_TYPE — LEÉ ESTO ANTES DE ARMAR CONEXIONES
+══════════════════════════════════════════════════════════
+
+"yes" = el visitante AVANZÓ (interactuó, se registró, hizo clic en comprar, pagó)
+"no"  = el visitante NO avanzó (salió, ignoró, abandonó) → va a recuperación/nurturing
+
+TABLA CANÓNICA DE CONEXIONES — seguila al pie de la letra:
+
+┌─────────────────────┬──────────────────────────────────────┬──────────────────────────────────────────┐
+│ Nodo origen         │ Salida YES → destino                 │ Salida NO → destino                      │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ landingPage         │ siguiente paso de venta              │ retargeting / emailSequence re-engagement│
+│                     │ (salesPage, checkout, webinarVsl)    │ (la gente que NO convirtió se recupera)  │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ emailSequence       │ siguiente paso de venta              │ retargeting / resultado / nada más        │
+│                     │ (salesPage, checkout, webinarVsl)    │ (los que no abrieron/no hicieron clic)   │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ salesPage           │ checkout                             │ retargeting / emailSequence              │
+│                     │ (los que hicieron clic en "comprar") │ (los que salieron sin comprar)           │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ checkout            │ upsell / orderBump / result          │ cartAbandonmentSeq / retargeting         │
+│                     │ (los que PAGARON)                    │ (los que NO completaron el pago)         │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ upsell              │ siguiente upsell / result            │ downsell / result                        │
+│                     │ (aceptaron la oferta)                │ (rechazaron, ofrecer algo más barato)    │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ webinarVsl          │ checkout                             │ emailSequence / retargeting              │
+│                     │ (mostraron interés en comprar)       │ (los que no convirtieron en el webinar)  │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ leadMagnet          │ emailSequence / landingPage          │ retargeting                              │
+│ applicationPage     │ appointment / emailSequence          │ emailSequence / nada                     │
+│ appointment         │ salesProposal / checkout / result    │ emailSequence de seguimiento             │
+└─────────────────────┴──────────────────────────────────────┴──────────────────────────────────────────┘
+
+REGLAS ABSOLUTAS (nunca se rompen):
+❌ retargeting NUNCA sale de "yes" — siempre de "no". El retargeting recupera a quien NO convirtió.
+❌ cartAbandonmentSeq NUNCA sale de "yes" de checkout — siempre de "no". Solo aplica a quien abandonó.
+❌ emailSequence que viene DESPUÉS de landingPage (como re-engagement) → sale de "no" del landingPage.
+❌ NUNCA conectar retargeting, cartAbandonmentSeq, ni emailSequence directamente a result.
+✅ Los nodos de recuperación (retargeting, cartAbandonmentSeq, emailSequence) reentran al flujo principal → van a salesPage, checkout, o landingPage.
+
+FLUJO CORRECTO INFOPRODUCTO/CURSO (bridge page):
+trafficEntry →(default)→ landingPage →(YES)→ salesPage →(YES)→ checkout →(YES)→ upsell →(YES)→ result
+                                      ↓(NO)                              ↓(NO)          ↓(NO)
+                              emailSequence →(YES)→ salesPage     cartAbandonmentSeq   downsell → result
+                              retargeting   →(YES)→ salesPage
+
+FLUJO CORRECTO OPT-IN (lead magnet — landingPage captura emails):
+trafficEntry →(default)→ landingPage →(YES)→ emailSequence →(YES)→ salesPage →(YES)→ checkout →(YES)→ result
+                                      ↓(NO)                                              ↓(NO)
+                                  retargeting                                    cartAbandonmentSeq
 
 ══════════════════════════════════════════════════════════
 REGLAS DE ESTRUCTURA DE FUNNELS — OBLIGATORIAS
@@ -229,32 +281,72 @@ Usá estos nodos ÚNICAMENTE si el usuario pide tracking explícitamente:
 metaPixel, googleTagManager, googleAnalytics, utmTracking, serverPostback, crmAttribution, heatmaps, callTracking, conversionApi, metaOfflineData
 Todos tienen salida única (default). No los incluyas en funnels básicos.
 
-══ PATRONES TÍPICOS DE FUNNELS (ejemplos de connections) ══
+══ PATRONES TÍPICOS DE FUNNELS (conexiones verificadas — copiá estos path_type exactos) ══
 
-Infoproducto / curso online:
-nodes: [trafficEntry(0), landingPage(1), emailSequence(2), salesPage(3), checkout(4), upsell(5), downsell(6), result(7)]
-connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 5→7(yes), 5→6(no), 6→7(yes), 6→7(no)
-+ Opcional: 1→retargeting(no), 4→cartAbandonmentSeq(no)
+Infoproducto / curso — bridge page (LA GENTE CONVIERTE EN LANDING Y VA AL SALES PAGE):
+nodes: [trafficEntry(0), landingPage(1), salesPage(2), checkout(3), upsell(4), downsell(5), emailSequence(6), retargeting(7), cartAbandonmentSeq(8), result(9)]
+connections:
+  0→1(default)   — tráfico entra al landing
+  1→2(yes)       — CONVIRTIERON en landing → van al sales page
+  1→6(no)        — NO convirtieron → nurturing por email
+  1→7(no)        — NO convirtieron → retargeting (segunda chance)
+  6→2(yes)       — email sequence: los que hicieron clic → van al sales page
+  2→3(yes)       — interesados del sales page → checkout
+  3→4(yes)       — PAGARON → upsell
+  3→8(no)        — NO pagaron → recuperación de carrito
+  8→3(yes)       — carrito recuperado → vuelven al checkout
+  4→9(yes)       — aceptaron upsell → result
+  4→5(no)        — rechazaron upsell → downsell
+  5→9(yes)       — aceptaron downsell → result
+  5→9(no)        — rechazaron downsell → result igual
 
-High-ticket / consultoría / agencia:
+Infoproducto / curso — opt-in (LANDING CAPTURA EL EMAIL, LA SECUENCIA NUTRE EL LEAD):
+nodes: [trafficEntry(0), landingPage(1), emailSequence(2), salesPage(3), checkout(4), upsell(5), result(6)]
+connections:
+  0→1(default)   — tráfico entra al landing
+  1→2(yes)       — DIERON SU EMAIL → entran a la secuencia de nurturing
+  1→retargeting(no) — NO optaron → retargeting
+  2→3(yes)       — hicieron clic en el email → van al sales page
+  3→4(yes)       — hicieron clic en comprar → checkout
+  4→5(yes)       — PAGARON → upsell
+  4→cartAbandonmentSeq(no) — NO pagaron → recuperación
+  5→6(yes)       — aceptaron upsell → result
+  5→6(no)        — rechazaron → result igual
+
+High-ticket / consultoría:
 nodes: [trafficEntry(0), landingPage(1), applicationPage(2), appointment(3), salesProposal(4), result(5)]
-connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes)
-+ Opcional: 3→emailSequence(no), 4→salesNegotiation(no)→result(yes)
+connections:
+  0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes)
+  3→emailSequence(no)        — no se presentaron → seguimiento
+  4→salesNegotiation(no)→5(yes) — negociación si no aceptaron
 
 SaaS / software:
 nodes: [trafficEntry(0), landingPage(1), freeTrialSignup(2), onboardingSeq(3), trialToPaid(4), recurringRevenueNode(5), result(6)]
-connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 5→6(default)
-+ Opcional: 4→emailSequence(no)→trialToPaid(yes)→result
+connections:
+  0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 5→6(default)
+  1→retargeting(no)             — no se registraron → retargeting
+  4→emailSequence(no)→4(yes)    — no convirtieron → secuencia de upgrade
 
 E-commerce:
-nodes: [trafficEntry(0), salesPage(1), checkout(2), orderBump(3), thankYouOffer(4), result(5)]
-connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(default), 4→5(yes)
-+ Opcional: 2→cartAbandonmentSeq(no)→checkout(yes)
+nodes: [trafficEntry(0), salesPage(1), checkout(2), orderBump(3), cartAbandonmentSeq(4), result(5)]
+connections:
+  0→1(default)   — tráfico al sales page
+  1→2(yes)       — hicieron clic en comprar → checkout
+  1→retargeting(no) — salieron sin comprar → retargeting
+  2→3(yes)       — PAGARON → order bump en checkout
+  2→4(no)        — NO pagaron → recuperación de carrito abandonado
+  3→5(default)   — order bump mostrado → result
+  4→2(yes)       — carrito recuperado → vuelven al checkout
 
 Webinar / lanzamiento:
 nodes: [trafficEntry(0), landingPage(1), webinarVsl(2), checkout(3), upsell(4), result(5)]
-connections: 0→1(default), 1→2(yes), 2→3(yes), 3→4(yes), 4→5(yes), 4→5(no)
-+ Opcional: 2→emailSequence(no)→checkout(yes)
+connections:
+  0→1(default), 1→2(yes), 2→3(yes)
+  1→retargeting(no)         — no se registraron al webinar → retargeting
+  2→emailSequence(no)→3(yes) — no convirtieron en el webinar → emails de cierre
+  3→4(yes)                  — PAGARON → upsell
+  3→cartAbandonmentSeq(no)  — NO pagaron → recuperación
+  4→5(yes), 4→5(no)         — con o sin upsell → result
 
 RECUERDA: En el JSON siempre incluí "connections" (no "edges"), con from_index y to_index según la posición en el array nodes.`
 
