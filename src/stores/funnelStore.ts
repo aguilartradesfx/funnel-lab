@@ -177,67 +177,144 @@ const INITIAL_NODES: FunnelRFNode[] = []
 const INITIAL_EDGES: FunnelRFEdge[] = []
 const MAX_HISTORY = 50
 
-// ─── Validación y corrección de path_types generados por la IA ───────────────
+// ─── Validación y corrección de path_types ────────────────────────────────────
 //
-// La IA a veces genera path_types incorrectos. Esta función los corrige antes
-// de crear los edges de React Flow, actuando como red de seguridad definitiva.
+// Red de seguridad definitiva. Corrige path_types incorrectos antes de crear
+// los edges de React Flow, tanto en importación desde IA como al cargar funnels.
 //
 // Reglas (se aplican en orden, la primera que aplica gana):
-//   1. trafficEntry → siempre "default" (salida única)
+//   1. Nodos de tráfico → siempre "default" (salida única)
 //   2. Nodos de recuperación → siempre "no"  (retargeting, cartAbandonmentSeq, etc.)
 //   3. Nodos post-conversión → siempre "yes" (upsell, onboarding, review, etc.)
 //   4. Nurturing desde nodos de venta/filtro → siempre "no" (es re-engagement)
-//   5. Avance lineal conocido → siempre "yes" (salesPage→checkout, landing→salesPage, etc.)
+//   5. landingPage → nurturing: "no" si también hay ruta directa a venta (bridge-page),
+//      "yes" si es la única ruta hacia adelante (opt-in)
+//   6. Avance lineal conocido → siempre "yes" (salesPage→checkout, landing→salesPage, etc.)
 
 function validateAndFixPathTypes(
   nodes: Array<{ type: string }>,
   connections: Array<{ from_index: number; to_index: number; path_type: string }>
 ): Array<{ from_index: number; to_index: number; path_type: string }> {
 
-  // Nodos de recuperación — solo reciben visitantes que NO convirtieron
+  // Nodos de tráfico — salida única, siempre "default"
+  const TRAFFIC_NODES = new Set([
+    'trafficEntry', 'paidTraffic', 'organicTraffic',
+    'blogSeo', 'videoContent',
+  ])
+
+  // Nodos de recuperación — SIEMPRE reciben visitantes que NO convirtieron ("no")
+  // Nunca deben recibir tráfico del "yes" de ningún nodo anterior
   const ALWAYS_FROM_NO = new Set([
-    'retargeting', 'dynamicRetargeting',
-    'cartAbandonmentSeq', 'reEngagement', 'winBack',
-    'downsell',                             // siempre del rechazo del upsell
+    'retargeting', 'dynamicRetargeting',     // retargeting de no-conversores
+    'cartAbandonmentSeq',                    // recuperación de abandono de pago
+    'reEngagement',                          // re-engagement de inactivos
+    'winBack',                               // recuperación de clientes perdidos
+    'downsell',                              // oferta alternativa tras rechazo de upsell
   ])
 
-  // Nodos post-conversión — solo reciben visitantes que SÍ convirtieron
+  // Nodos post-conversión — SIEMPRE reciben visitantes que SÍ convirtieron ("yes")
+  // Solo tienen sentido después de una compra o conversión confirmada
   const ALWAYS_FROM_YES = new Set([
-    'upsell', 'orderBump',                  // post-pago inmediato
-    'onboardingSeq',                        // bienvenida post-compra
-    'reviewRequest', 'referralProgram',     // acciones post-compra
-    'loyaltyProgram', 'npsSurvey',          // retención post-compra
-    'postSaleSupport', 'customerCommunity', // soporte post-compra
-    'crossSell', 'renewalUpsell',           // ventas adicionales a clientes
+    'upsell', 'orderBump',                  // oferta inmediata post-pago
+    'onboardingSeq',                        // bienvenida/activación post-compra
+    'reviewRequest', 'referralProgram',     // acciones de cliente post-compra
+    'loyaltyProgram', 'npsSurvey',          // retención y feedback post-compra
+    'postSaleSupport', 'customerCommunity', // soporte y comunidad post-compra
+    'crossSell', 'renewalUpsell',           // ventas adicionales a clientes existentes
   ])
 
-  // Nodos de nurturing que, cuando salen de un nodo de conversión/filtro,
-  // son re-engagement (reciben a quienes NO convirtieron → "no")
+  // Nodos de nurturing — su path_type depende del contexto (ver reglas 4 y 5)
   const NURTURING_NODES = new Set([
     'emailSequence', 'whatsappSms',
     'dripCampaign', 'multichannelNurturing', 'pushNotifications',
   ])
+
+  // Desde estos nodos de venta/filtro, un nurturing SIEMPRE es re-engagement ("no"):
+  // el visitante pasó por el nodo y NO convirtió → se lo nutre para recuperarlo
   const REENGAGEMENT_SOURCES = new Set([
     'salesPage', 'webinarVsl', 'checkout',
+    'applicationPage', 'appointment', 'productDemo',
+    'webinarReplay', 'leadMagnet', 'tripwire',
+    'pricingPage', 'freeTrialSignup',
   ])
 
   // Avance lineal principal del funnel → siempre "yes"
+  // Cubre los pares source→target donde el visitante "avanzó" (convirtió en el source)
   const FUNNEL_ADVANCE: Array<{ targets: Set<string>; sources: Set<string> }> = [
     {
+      // → checkout: cualquier nodo de filtro/venta que lleva al pago
       targets: new Set(['checkout']),
       sources: new Set([
         'salesPage', 'landingPage', 'webinarVsl', 'pricingPage',
         'applicationPage', 'tripwire', 'productDemo', 'quizInteractive',
-        'leadMagnet',
+        'leadMagnet', 'emailSequence', 'dripCampaign', 'multichannelNurturing',
+        'retargeting', 'cartAbandonmentSeq', 'thankYouOffer',
       ]),
     },
     {
+      // → salesPage: cualquier nodo que lleva a la página de ventas
       targets: new Set(['salesPage']),
       sources: new Set([
-        'landingPage', 'emailSequence', 'leadMagnet',
-        'quizInteractive', 'webinarReplay', 'dripCampaign',
-        'multichannelNurturing', 'retargeting', 'cartAbandonmentSeq',
+        'landingPage', 'emailSequence', 'leadMagnet', 'quizInteractive',
+        'webinarReplay', 'dripCampaign', 'multichannelNurturing',
+        'retargeting', 'cartAbandonmentSeq', 'webinarVsl',
       ]),
+    },
+    {
+      // → webinarVsl: registración al webinar
+      targets: new Set(['webinarVsl']),
+      sources: new Set([
+        'landingPage', 'emailSequence', 'leadMagnet', 'dripCampaign',
+        'multichannelNurturing', 'retargeting',
+      ]),
+    },
+    {
+      // → applicationPage: completó formulario de aplicación
+      targets: new Set(['applicationPage']),
+      sources: new Set(['landingPage', 'emailSequence', 'leadMagnet', 'webinarVsl']),
+    },
+    {
+      // → appointment: reservó una llamada/cita
+      targets: new Set(['appointment']),
+      sources: new Set([
+        'applicationPage', 'landingPage', 'webinarVsl',
+        'leadMagnet', 'emailSequence', 'salesProposal',
+      ]),
+    },
+    {
+      // → salesProposal: pasó la llamada y recibe propuesta
+      targets: new Set(['salesProposal']),
+      sources: new Set(['appointment', 'productDemo', 'digitalContract']),
+    },
+    {
+      // → digitalContract: aceptó la propuesta
+      targets: new Set(['digitalContract']),
+      sources: new Set(['salesProposal', 'salesNegotiation', 'appointment']),
+    },
+    {
+      // → tripwire: oferta de entrada low-ticket
+      targets: new Set(['tripwire']),
+      sources: new Set(['landingPage', 'blogSeo', 'videoContent', 'leadMagnet']),
+    },
+    {
+      // → pricingPage: llegó a ver precios
+      targets: new Set(['pricingPage']),
+      sources: new Set(['landingPage', 'emailSequence', 'leadMagnet', 'dripCampaign']),
+    },
+    {
+      // → freeTrialSignup: se registró para el trial
+      targets: new Set(['freeTrialSignup']),
+      sources: new Set(['landingPage', 'emailSequence', 'pricingPage']),
+    },
+    {
+      // → trialToPaid: convirtió de trial a pago
+      targets: new Set(['trialToPaid']),
+      sources: new Set(['freeTrialSignup', 'onboardingSeq']),
+    },
+    {
+      // → leadMagnet: descargó/accedió al lead magnet
+      targets: new Set(['leadMagnet']),
+      sources: new Set(['landingPage', 'blogSeo', 'videoContent', 'emailSequence']),
     },
   ]
 
@@ -246,15 +323,33 @@ function validateAndFixPathTypes(
     const tgt = nodes[conn.to_index]?.type ?? ''
     let pt = conn.path_type
 
-    if (src === 'trafficEntry') {
+    if (TRAFFIC_NODES.has(src)) {
+      // Nodos de tráfico siempre tienen salida única
       pt = 'default'
     } else if (ALWAYS_FROM_NO.has(tgt)) {
+      // Nodos de recuperación: SIEMPRE vienen del "no" (no-conversores)
       pt = 'no'
     } else if (ALWAYS_FROM_YES.has(tgt)) {
+      // Nodos post-conversión: SIEMPRE vienen del "yes" (compradores)
       pt = 'yes'
     } else if (NURTURING_NODES.has(tgt) && REENGAGEMENT_SOURCES.has(src)) {
+      // Nurturing desde nodo de venta/filtro: es re-engagement de no-conversores
       pt = 'no'
+    } else if (src === 'landingPage' && NURTURING_NODES.has(tgt)) {
+      // Caso ambiguo: landingPage → nurturing
+      // Si también existe ruta directa landingPage → salesPage/checkout/webinarVsl
+      // → es funnel bridge-page: emailSequence recibe a los que NO convirtieron ("no")
+      // Si no existe esa ruta directa
+      // → es funnel opt-in: emailSequence recibe a los que dieron su email ("yes")
+      const hasDirectSalePath = connections.some(c =>
+        c.from_index === conn.from_index &&
+        c.to_index !== conn.to_index &&
+        new Set(['salesPage', 'checkout', 'webinarVsl']).has(nodes[c.to_index]?.type ?? '')
+      )
+      if (hasDirectSalePath) pt = 'no'
+      // else: mantener path_type original (opt-in)
     } else {
+      // Avance lineal: pares source→target conocidos siempre avanzan con "yes"
       for (const rule of FUNNEL_ADVANCE) {
         if (rule.targets.has(tgt) && rule.sources.has(src)) {
           pt = 'yes'
@@ -264,11 +359,62 @@ function validateAndFixPathTypes(
     }
 
     if (pt !== conn.path_type) {
-      console.warn(`[AI PathType Fix] ${src}(${conn.path_type}) → ${tgt}  →  corregido a "${pt}"`)
+      console.warn(`[PathType Fix] ${src}(${conn.path_type}) → ${tgt}  corregido a "${pt}"`)
     }
 
     return { ...conn, path_type: pt }
   })
+}
+
+// Convierte un path_type al id del handle de salida correcto en el nodo origen.
+// CRÍTICO: este es el único lugar que decide a qué handle físico conecta el edge.
+//   "no"       → "output-rejection"  (punto rojo — visitantes que NO convirtieron)
+//   "yes"      → "output-right"      (punto gris — visitantes que SÍ convirtieron)
+//   "default"  → "output-right"      (salida única — nodos de tráfico, utilidades)
+//   "branch-N" → "branch-N"          (splits / A-B tests)
+function pathTypeToSourceHandle(pathType: string): string {
+  if (pathType === 'no') return 'output-rejection'
+  if (pathType.startsWith('branch-')) return pathType
+  return 'output-right'
+}
+
+// Versión de validateAndFixPathTypes que opera sobre FunnelRFNode/FunnelRFEdge
+// directamente. Se usa al cargar proyectos y blueprints existentes.
+// Corrige TANTO data.pathType COMO sourceHandle — ambos deben estar sincronizados.
+function fixEdgePathTypes(nodes: FunnelRFNode[], edges: FunnelRFEdge[]): FunnelRFEdge[] {
+  if (edges.length === 0) return edges
+  const nodeIndexMap = new Map(nodes.map((n, i) => [n.id, i]))
+
+  const indexedConns = edges.map(e => ({
+    from_index: nodeIndexMap.get(e.source) ?? -1,
+    to_index:   nodeIndexMap.get(e.target) ?? -1,
+    path_type:  (e.data?.pathType as string) ?? 'default',
+  }))
+
+  const nodeTypes = nodes.map(n => ({ type: n.type as string }))
+  const fixed = validateAndFixPathTypes(nodeTypes, indexedConns)
+
+  let changed = false
+  const result = edges.map((e, i) => {
+    const orig = indexedConns[i]
+    const fix  = fixed[i]
+    if (orig.from_index === -1 || orig.to_index === -1) return e
+
+    const correctHandle = pathTypeToSourceHandle(fix.path_type)
+    const ptChanged     = fix.path_type !== orig.path_type
+    const handleChanged = e.sourceHandle !== correctHandle
+
+    if (!ptChanged && !handleChanged) return e
+    changed = true
+    return {
+      ...e,
+      sourceHandle: correctHandle,
+      targetHandle: 'input-left',
+      data: { ...e.data, pathType: fix.path_type },
+    }
+  })
+
+  return changed ? result : edges
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -551,8 +697,10 @@ export const useFunnelStore = create<FunnelStore>()(
       loadBlueprint: (blueprint) => {
         get().pushHistory()
         set(state => {
-          state.nodes = blueprint.nodes.map(n => ({ ...n }))
-          state.edges = blueprint.edges.map(e => ({ ...e }))
+          const bpNodes = blueprint.nodes.map(n => ({ ...n }))
+          const bpEdges = blueprint.edges.map(e => ({ ...e }))
+          state.nodes = bpNodes
+          state.edges = fixEdgePathTypes(bpNodes, bpEdges)
           state.selectedNodeId = null
           state.simResults = null
           state.hasSimulated = false
@@ -566,7 +714,7 @@ export const useFunnelStore = create<FunnelStore>()(
           state.projectId = project.id
           state.projectName = project.name
           state.nodes = project.nodes
-          state.edges = project.edges
+          state.edges = fixEdgePathTypes(project.nodes, project.edges)
           state.products = project.products ?? []
           state.selectedNodeId = null
           state.simResults = null
@@ -1054,6 +1202,8 @@ export const useFunnelStore = create<FunnelStore>()(
             type: 'funnelEdge' as const,
             source: nodeIds[c.from_index],
             target: nodeIds[c.to_index],
+            sourceHandle: pathTypeToSourceHandle(c.path_type),
+            targetHandle: 'input-left',
             data: { pathType: c.path_type as FunnelRFEdge['data'] extends infer D ? D extends { pathType: infer P } ? P : 'default' : 'default' },
           }))
 
@@ -1092,6 +1242,18 @@ export const useFunnelStore = create<FunnelStore>()(
     }
   )
 )
+
+// ─── Migración de edges al rehidratar desde localStorage ────────────────────
+// Cuando Zustand rehidrata el store desde localStorage, los edges pueden tener
+// sourceHandle incorrecto (o ausente) de versiones anteriores. Este hook corre
+// una sola vez al arrancar la app y corrige todos los edges persistidos.
+useFunnelStore.persist.onFinishHydration((state) => {
+  if (!state || state.edges.length === 0) return
+  const fixed = fixEdgePathTypes(state.nodes, state.edges)
+  if (fixed !== state.edges) {
+    useFunnelStore.setState({ edges: fixed })
+  }
+})
 
 // ─── Selector helpers ─────────────────────────────────────────────────────────
 

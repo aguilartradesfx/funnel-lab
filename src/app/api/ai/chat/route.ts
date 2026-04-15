@@ -78,46 +78,85 @@ REGLAS CRÍTICAS PARA GENERAR FUNNELS:
 9. CONFIGURACIÓN REALISTA DE CHECKOUT: abandonment 65% = conversionRate efectivo ~35%. Asegurate de que los configs generen visitantes suficientes para que los números sean significativos (mínimo 500-1000 visitas al inicio del funnel).
 
 ══════════════════════════════════════════════════════════
-SEMÁNTICA DE PATH_TYPE — LEÉ ESTO ANTES DE ARMAR CONEXIONES
+SEMÁNTICA DE PATH_TYPE — REGLA MAESTRA
 ══════════════════════════════════════════════════════════
 
-"yes" = el visitante AVANZÓ (interactuó, se registró, hizo clic en comprar, pagó)
-"no"  = el visitante NO avanzó (salió, ignoró, abandonó) → va a recuperación/nurturing
+ANTES de escribir cada conexión, hacete UNA sola pregunta:
+  "¿Este visitante CONVIRTIÓ en el nodo origen?"
+  → SÍ convirtió   → path_type: "yes"   → va al SIGUIENTE PASO de venta
+  → NO convirtió   → path_type: "no"    → va a RECUPERACIÓN/NURTURING
+
+GRUPOS INAMOVIBLES — estos path_types NUNCA cambian, sin excepción:
+
+GRUPO A — SIEMPRE desde "no" (son para quien NO convirtió):
+  retargeting, dynamicRetargeting   → recupera a quien ignoró/salió
+  cartAbandonmentSeq                → recupera a quien abandonó el pago
+  reEngagement, winBack             → recupera inactivos / clientes perdidos
+  downsell                          → alternativa para quien rechazó el upsell
+
+  ❌ JAMÁS: cualquier_nodo(yes) → retargeting
+  ❌ JAMÁS: cualquier_nodo(yes) → cartAbandonmentSeq
+  ❌ JAMÁS: cualquier_nodo(yes) → reEngagement / winBack
+  ❌ JAMÁS: checkout(yes) → cartAbandonmentSeq  ← ERROR CRÍTICO: los que PAGARON no abandonaron
+  ❌ JAMÁS: landingPage(yes) → retargeting      ← ERROR CRÍTICO: los que convirtieron no se retratan
+
+GRUPO B — SIEMPRE desde "yes" (son para quien SÍ compró/convirtió):
+  upsell, orderBump                 → oferta inmediata post-pago
+  onboardingSeq                     → bienvenida al nuevo cliente
+  reviewRequest, referralProgram    → acciones post-compra
+  loyaltyProgram, npsSurvey         → retención y feedback
+  postSaleSupport, customerCommunity→ soporte y comunidad
+  crossSell, renewalUpsell          → ventas adicionales a clientes
+
+  ❌ JAMÁS: checkout(no) → upsell       ← los que NO pagaron no ven el upsell
+  ❌ JAMÁS: cualquier_nodo(no) → onboardingSeq / reviewRequest / referralProgram / etc.
 
 TABLA CANÓNICA DE CONEXIONES — seguila al pie de la letra:
 
 ┌─────────────────────┬──────────────────────────────────────┬──────────────────────────────────────────┐
 │ Nodo origen         │ Salida YES → destino                 │ Salida NO → destino                      │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
-│ landingPage         │ siguiente paso de venta              │ retargeting / emailSequence re-engagement│
-│                     │ (salesPage, checkout, webinarVsl)    │ (la gente que NO convirtió se recupera)  │
+│ landingPage         │ salesPage / checkout / webinarVsl    │ retargeting / emailSequence (re-eng.)    │
+│ (bridge page)       │ (los que hicieron clic/avanzaron)    │ (los que NO convirtieron se recuperan)   │
+│ landingPage         │ emailSequence                        │ retargeting                              │
+│ (opt-in)            │ (los que dieron su email)            │ (los que NO dieron su email)             │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
-│ emailSequence       │ siguiente paso de venta              │ retargeting / resultado / nada más        │
-│                     │ (salesPage, checkout, webinarVsl)    │ (los que no abrieron/no hicieron clic)   │
+│ emailSequence       │ salesPage / checkout / webinarVsl    │ retargeting / result / nada más          │
+│                     │ (los que hicieron clic en el email)  │ (los que no abrieron/no hicieron clic)   │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
-│ salesPage           │ checkout                             │ retargeting / emailSequence              │
+│ salesPage           │ checkout                             │ retargeting / emailSequence (re-eng.)    │
 │                     │ (los que hicieron clic en "comprar") │ (los que salieron sin comprar)           │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
 │ checkout            │ upsell / orderBump / result          │ cartAbandonmentSeq / retargeting         │
-│                     │ (los que PAGARON)                    │ (los que NO completaron el pago)         │
+│                     │ (los que PAGARON — completaron pago) │ (los que NO completaron — abandonaron)   │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
 │ upsell              │ siguiente upsell / result            │ downsell / result                        │
-│                     │ (aceptaron la oferta)                │ (rechazaron, ofrecer algo más barato)    │
+│                     │ (aceptaron la oferta extra)          │ (rechazaron — ofrecer algo más barato)   │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ downsell            │ result                               │ result                                   │
+│                     │ (aceptaron la oferta reducida)       │ (rechazaron también — igualmente result) │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
 │ webinarVsl          │ checkout                             │ emailSequence / retargeting              │
-│                     │ (mostraron interés en comprar)       │ (los que no convirtieron en el webinar)  │
+│                     │ (mostraron interés — clic en comprar)│ (los que no convirtieron en el webinar)  │
 ├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
-│ leadMagnet          │ emailSequence / landingPage          │ retargeting                              │
-│ applicationPage     │ appointment / emailSequence          │ emailSequence / nada                     │
+│ leadMagnet          │ emailSequence / salesPage            │ retargeting                              │
+│                     │ (descargaron/accedieron)             │ (no accedieron)                          │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ applicationPage     │ appointment / emailSequence          │ emailSequence re-engagement              │
+│                     │ (completaron la solicitud)           │ (no completaron / no calificaron)        │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
 │ appointment         │ salesProposal / checkout / result    │ emailSequence de seguimiento             │
+│                     │ (se presentaron y hubo avance)       │ (no se presentaron / no hubo cierre)     │
+├─────────────────────┼──────────────────────────────────────┼──────────────────────────────────────────┤
+│ retargeting         │ salesPage / checkout / landingPage   │ (no conectar — se fueron definitivo)     │
+│ cartAbandonmentSeq  │ checkout (reentran al carrito)       │ (no conectar — se fueron definitivo)     │
 └─────────────────────┴──────────────────────────────────────┴──────────────────────────────────────────┘
 
 REGLAS ABSOLUTAS (nunca se rompen):
-❌ retargeting NUNCA sale de "yes" — siempre de "no". El retargeting recupera a quien NO convirtió.
-❌ cartAbandonmentSeq NUNCA sale de "yes" de checkout — siempre de "no". Solo aplica a quien abandonó.
-❌ emailSequence que viene DESPUÉS de landingPage (como re-engagement) → sale de "no" del landingPage.
-❌ NUNCA conectar retargeting, cartAbandonmentSeq, ni emailSequence directamente a result.
-✅ Los nodos de recuperación (retargeting, cartAbandonmentSeq, emailSequence) reentran al flujo principal → van a salesPage, checkout, o landingPage.
+❌ Nodos del GRUPO A nunca reciben tráfico "yes" — sin excepciones.
+❌ Nodos del GRUPO B nunca reciben tráfico "no" — sin excepciones.
+❌ NUNCA conectar retargeting, cartAbandonmentSeq directamente a result (reentran al flujo).
+✅ Los nodos de recuperación SIEMPRE reentran al flujo principal → van a salesPage, checkout, o landingPage.
 
 FLUJO CORRECTO INFOPRODUCTO/CURSO (bridge page):
 trafficEntry →(default)→ landingPage →(YES)→ salesPage →(YES)→ checkout →(YES)→ upsell →(YES)→ result
