@@ -435,10 +435,22 @@ RECUERDA: En el JSON siempre incluí "connections" (no "edges"), con from_index 
 function extractKeyMetrics(node: { type: string; config: Record<string, any> }) {
   const c = node.config ?? {}
   switch (node.type) {
-    case 'trafficEntry': case 'trafficSource': case 'paidTraffic':
-      return { visitantes: c.total_visitors ?? c.monthlyVisitors, budget: c.total_budget ?? c.budget, cpc: c.cpc, plataforma: c.platform }
+    case 'trafficEntry':
+      // Config real: { totalVisitors, totalBudget, sources: [{name, visitors, type}] }
+      return {
+        visitantes: c.totalVisitors,
+        budget: c.totalBudget > 0 ? `$${c.totalBudget}` : 'orgánico',
+        fuentes: Array.isArray(c.sources) && c.sources.length > 0
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? c.sources.map((s: any) => `${s.name}: ${s.visitors} vis.`).join(' | ')
+          : 'sin fuentes',
+      }
+    case 'trafficSource': case 'paidTraffic':
+      // Config real: { platform, budget, cpc, ctr, monthlyVisitors }
+      return { visitantes: c.monthlyVisitors, budget: c.budget ? `$${c.budget}` : undefined, cpc: c.cpc ? `$${c.cpc}` : undefined, plataforma: c.platform }
     case 'organicTraffic':
-      return { visitantes: c.monthlyVisitors, canal: c.platform }
+      // Config real: { channel, reach, engagementRate, ctr }
+      return { visitantes: c.monthlyVisitors ?? Math.round((c.reach ?? 0) * (c.ctr ?? 0) / 100), canal: c.channel, reach: c.reach }
     case 'landingPage':
       return { conversión: `${c.conversionRate ?? c.conversion_rate}%` }
     case 'salesPage':
