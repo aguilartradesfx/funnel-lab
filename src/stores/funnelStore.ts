@@ -177,6 +177,100 @@ const INITIAL_NODES: FunnelRFNode[] = []
 const INITIAL_EDGES: FunnelRFEdge[] = []
 const MAX_HISTORY = 50
 
+// ─── Validación y corrección de path_types generados por la IA ───────────────
+//
+// La IA a veces genera path_types incorrectos. Esta función los corrige antes
+// de crear los edges de React Flow, actuando como red de seguridad definitiva.
+//
+// Reglas (se aplican en orden, la primera que aplica gana):
+//   1. trafficEntry → siempre "default" (salida única)
+//   2. Nodos de recuperación → siempre "no"  (retargeting, cartAbandonmentSeq, etc.)
+//   3. Nodos post-conversión → siempre "yes" (upsell, onboarding, review, etc.)
+//   4. Nurturing desde nodos de venta/filtro → siempre "no" (es re-engagement)
+//   5. Avance lineal conocido → siempre "yes" (salesPage→checkout, landing→salesPage, etc.)
+
+function validateAndFixPathTypes(
+  nodes: Array<{ type: string }>,
+  connections: Array<{ from_index: number; to_index: number; path_type: string }>
+): Array<{ from_index: number; to_index: number; path_type: string }> {
+
+  // Nodos de recuperación — solo reciben visitantes que NO convirtieron
+  const ALWAYS_FROM_NO = new Set([
+    'retargeting', 'dynamicRetargeting',
+    'cartAbandonmentSeq', 'reEngagement', 'winBack',
+    'downsell',                             // siempre del rechazo del upsell
+  ])
+
+  // Nodos post-conversión — solo reciben visitantes que SÍ convirtieron
+  const ALWAYS_FROM_YES = new Set([
+    'upsell', 'orderBump',                  // post-pago inmediato
+    'onboardingSeq',                        // bienvenida post-compra
+    'reviewRequest', 'referralProgram',     // acciones post-compra
+    'loyaltyProgram', 'npsSurvey',          // retención post-compra
+    'postSaleSupport', 'customerCommunity', // soporte post-compra
+    'crossSell', 'renewalUpsell',           // ventas adicionales a clientes
+  ])
+
+  // Nodos de nurturing que, cuando salen de un nodo de conversión/filtro,
+  // son re-engagement (reciben a quienes NO convirtieron → "no")
+  const NURTURING_NODES = new Set([
+    'emailSequence', 'whatsappSms',
+    'dripCampaign', 'multichannelNurturing', 'pushNotifications',
+  ])
+  const REENGAGEMENT_SOURCES = new Set([
+    'salesPage', 'webinarVsl', 'checkout',
+  ])
+
+  // Avance lineal principal del funnel → siempre "yes"
+  const FUNNEL_ADVANCE: Array<{ targets: Set<string>; sources: Set<string> }> = [
+    {
+      targets: new Set(['checkout']),
+      sources: new Set([
+        'salesPage', 'landingPage', 'webinarVsl', 'pricingPage',
+        'applicationPage', 'tripwire', 'productDemo', 'quizInteractive',
+        'leadMagnet',
+      ]),
+    },
+    {
+      targets: new Set(['salesPage']),
+      sources: new Set([
+        'landingPage', 'emailSequence', 'leadMagnet',
+        'quizInteractive', 'webinarReplay', 'dripCampaign',
+        'multichannelNurturing', 'retargeting', 'cartAbandonmentSeq',
+      ]),
+    },
+  ]
+
+  return connections.map(conn => {
+    const src = nodes[conn.from_index]?.type ?? ''
+    const tgt = nodes[conn.to_index]?.type ?? ''
+    let pt = conn.path_type
+
+    if (src === 'trafficEntry') {
+      pt = 'default'
+    } else if (ALWAYS_FROM_NO.has(tgt)) {
+      pt = 'no'
+    } else if (ALWAYS_FROM_YES.has(tgt)) {
+      pt = 'yes'
+    } else if (NURTURING_NODES.has(tgt) && REENGAGEMENT_SOURCES.has(src)) {
+      pt = 'no'
+    } else {
+      for (const rule of FUNNEL_ADVANCE) {
+        if (rule.targets.has(tgt) && rule.sources.has(src)) {
+          pt = 'yes'
+          break
+        }
+      }
+    }
+
+    if (pt !== conn.path_type) {
+      console.warn(`[AI PathType Fix] ${src}(${conn.path_type}) → ${tgt}  →  corregido a "${pt}"`)
+    }
+
+    return { ...conn, path_type: pt }
+  })
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useFunnelStore = create<FunnelStore>()(
@@ -947,18 +1041,21 @@ export const useFunnelStore = create<FunnelStore>()(
           }
         })
 
-        const newEdges: FunnelRFEdge[] = aiConnections
+        // Corregir path_types antes de crear los edges
+        const validatedConnections = validateAndFixPathTypes(
+          aiNodes,
+          aiConnections.map(c => ({ ...c, path_type: c.path_type ?? 'default' }))
+        )
+
+        const newEdges: FunnelRFEdge[] = validatedConnections
           .filter(c => c.from_index < nodeIds.length && c.to_index < nodeIds.length)
-          .map(c => {
-            const pathType = (c.path_type ?? 'default') as FunnelRFEdge['data'] extends infer D ? D extends { pathType: infer P } ? P : 'default' : 'default'
-            return {
-              id: `e-ai-${uuid()}`,
-              type: 'funnelEdge' as const,
-              source: nodeIds[c.from_index],
-              target: nodeIds[c.to_index],
-              data: { pathType },
-            }
-          })
+          .map(c => ({
+            id: `e-ai-${uuid()}`,
+            type: 'funnelEdge' as const,
+            source: nodeIds[c.from_index],
+            target: nodeIds[c.to_index],
+            data: { pathType: c.path_type as FunnelRFEdge['data'] extends infer D ? D extends { pathType: infer P } ? P : 'default' : 'default' },
+          }))
 
         set(state => {
           state.nodes = newNodes

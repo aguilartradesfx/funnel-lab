@@ -281,6 +281,47 @@ Usá estos nodos ÚNICAMENTE si el usuario pide tracking explícitamente:
 metaPixel, googleTagManager, googleAnalytics, utmTracking, serverPostback, crmAttribution, heatmaps, callTracking, conversionApi, metaOfflineData
 Todos tienen salida única (default). No los incluyas en funnels básicos.
 
+══════════════════════════════════════════════════════════
+REGLA: NODOS DE NURTURING EN EL PIPELINE — CUÁNDO Y DESDE DÓNDE
+══════════════════════════════════════════════════════════
+
+emailSequence, whatsappSms, dripCampaign y multichannelNurturing son pasos del pipeline
+SOLO cuando representan nurturing real (secuencia de días/semanas que mueve leads hacia la compra).
+NUNCA los uses como emails transaccionales, de confirmación o de bienvenida — eso existe en el
+ESP/CRM fuera del simulador.
+
+REGLA GENERAL para todos los nodos de nurturing:
+  → Desde "no": SIEMPRE válido. Son recuperación de quien no convirtió.
+  → Desde "yes": SOLO si es una secuencia de nurturing genuina (lead magnet, mini-curso, etc.)
+                 donde el email es el mecanismo que lleva al lead a comprar durante días/semanas.
+
+CASOS CORRECTOS:
+  ✅ landingPage(yes) → salesPage
+     (el opt-in va directo al salesPage; el email de bienvenida existe fuera del funnel)
+  ✅ landingPage(no) → emailSequence → salesPage
+     (nurturing de quienes NO convirtieron en el landing — re-engagement)
+  ✅ landingPage(yes) → emailSequence → salesPage
+     (SOLO si es un funnel de lead magnet donde los emails son el mecanismo de conversión:
+      ej. "descargá el PDF → secuencia de 7 emails en 14 días → página de ventas")
+  ✅ salesPage(no) → emailSequence → salesPage   (re-engagement de quien salió sin comprar)
+  ✅ webinarVsl(no) → emailSequence → checkout    (seguimiento post-webinar a no-compradores)
+  ✅ checkout(no) → cartAbandonmentSeq → checkout (recuperación de carrito abandonado)
+
+CASOS INCORRECTOS:
+  ❌ landingPage(yes) → emailSequence → salesPage  (si el email es solo "gracias por suscribirte")
+  ❌ checkout(yes) → emailSequence                 (los que pagaron van al upsell/result, no a email)
+  ❌ salesPage(yes) → emailSequence                (los que hicieron clic van al checkout, no a email)
+  ❌ cualquier_nodo(yes) → retargeting             (retargeting es SIEMPRE desde "no")
+  ❌ checkout(yes) → cartAbandonmentSeq            (abandono es SIEMPRE desde "no")
+  ❌ upsell(yes) → downsell                        (downsell es SIEMPRE desde el rechazo "no")
+
+NODOS QUE SIEMPRE RECIBEN DESDE "no" (recuperación):
+  retargeting, dynamicRetargeting, cartAbandonmentSeq, reEngagement, winBack, downsell
+
+NODOS QUE SIEMPRE RECIBEN DESDE "yes" (post-conversión):
+  upsell, orderBump, onboardingSeq, reviewRequest, referralProgram,
+  loyaltyProgram, npsSurvey, postSaleSupport, customerCommunity, crossSell, renewalUpsell
+
 ══ PATRONES TÍPICOS DE FUNNELS (conexiones verificadas — copiá estos path_type exactos) ══
 
 Infoproducto / curso — bridge page (LA GENTE CONVIERTE EN LANDING Y VA AL SALES PAGE):
