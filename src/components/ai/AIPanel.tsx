@@ -28,34 +28,49 @@ interface FunnelJSONData {
   edges?: Array<{ from_index: number; to_index: number; path_type?: string }>
 }
 
-function extractFunnelJSON(content: string): {
-  funnelData: FunnelJSONData | null
-  preText: string
-} {
-  const jsonMatch = content.match(/```json\n?([\s\S]*?)```/)
-  if (!jsonMatch) return { funnelData: null, preText: content }
-
+function tryParseFunnelJSON(raw: string): FunnelJSONData | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed = JSON.parse(jsonMatch[1]) as any
-    if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
-      return { funnelData: null, preText: content }
-    }
-
-    const funnelData: FunnelJSONData = {
+    const parsed = JSON.parse(raw) as any
+    if (!parsed?.nodes || !Array.isArray(parsed.nodes) || parsed.nodes.length === 0) return null
+    return {
       funnel_name: parsed.funnel_name,
       nodes: normalizeAINodes(parsed.nodes),
       connections: parsed.connections ?? parsed.edges,
     }
-
-    // Solo conservar el texto antes del bloque JSON; la tarjeta de importación reemplaza al bloque
-    const jsonStart = content.indexOf('```json')
-    const preText = jsonStart > 0 ? content.slice(0, jsonStart).trim() : ''
-
-    return { funnelData, preText }
   } catch {
-    return { funnelData: null, preText: content }
+    return null
   }
+}
+
+function extractFunnelJSON(content: string): {
+  funnelData: FunnelJSONData | null
+  preText: string
+} {
+  // Intento 1: bloque ``` json ``` (con o sin mayúsculas)
+  const fenceMatch = content.match(/```[Jj][Ss][Oo][Nn]\n?([\s\S]*?)```/)
+  if (fenceMatch) {
+    const funnelData = tryParseFunnelJSON(fenceMatch[1])
+    if (funnelData) {
+      const jsonStart = content.search(/```[Jj][Ss][Oo][Nn]/)
+      const preText = jsonStart > 0 ? content.slice(0, jsonStart).trim() : ''
+      return { funnelData, preText }
+    }
+  }
+
+  // Intento 2: JSON sin código cercado — la IA lo volcó como texto plano
+  // Busca desde el primer { hasta el último } e intenta parsear
+  const firstBrace = content.indexOf('{')
+  const lastBrace = content.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const funnelData = tryParseFunnelJSON(content.slice(firstBrace, lastBrace + 1))
+    if (funnelData) {
+      const preText = firstBrace > 0 ? content.slice(0, firstBrace).trim() : ''
+      return { funnelData, preText }
+    }
+  }
+
+  return { funnelData: null, preText: content }
 }
 
 // ─── Normaliza nodos del formato IA (soporta formato simplificado Y formato RF completo) ──
@@ -250,22 +265,12 @@ function renderMarkdown(text: string): React.ReactNode {
         i++
       }
 
-      // Interceptar bloques JSON que contengan un funnel (campo "nodes")
-      if (lang === 'json') {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const parsed = JSON.parse(codeLines.join('\n')) as any
-          if (parsed && Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
-            const funnelData: FunnelJSONData = {
-              funnel_name: parsed.funnel_name,
-              nodes: normalizeAINodes(parsed.nodes),
-              connections: parsed.connections ?? parsed.edges,
-            }
-            blocks.push(<FunnelImportCard key={i} funnelData={funnelData} />)
-            i++; continue
-          }
-        } catch {
-          // Si no es JSON válido, caer al render normal de <pre>
+      // Interceptar bloques JSON que contengan un funnel (campo "nodes") — case insensitive
+      if (lang.toLowerCase() === 'json') {
+        const funnelData = tryParseFunnelJSON(codeLines.join('\n'))
+        if (funnelData) {
+          blocks.push(<FunnelImportCard key={i} funnelData={funnelData} />)
+          i++; continue
         }
       }
 
@@ -587,7 +592,13 @@ export function AIPanelContent() {
   // ── Enviar "Generar funnel" ────────────────────────────────────────────────
   const handleGenFunnel = () => {
     if (!genFunnelInput.trim()) return
-    const msg = `Generá un funnel completo para este negocio: ${genFunnelInput}. Respondé SOLO con un bloque JSON dentro de \`\`\`json con esta estructura: { funnel_name, nodes: [{ type, label, config }], connections: [{ from_index, to_index, path_type }] }`
+    const msg = `Generá un funnel completo para este negocio: ${genFunnelInput}.
+
+IMPORTANTE — formato de respuesta:
+1. Podés incluir un análisis breve de las fuentes de tráfico y el flujo antes del JSON.
+2. El JSON del funnel DEBE estar dentro de un bloque \`\`\`json ... \`\`\` (con las triple backticks).
+3. Estructura del JSON: { "funnel_name": "...", "nodes": [{ "type": "...", "label": "...", "config": {...} }], "connections": [{ "from_index": 0, "to_index": 1, "path_type": "default" }] }
+4. NUNCA devuelvas el JSON como texto plano sin las triple backticks — el sistema no podrá importarlo.`
     sendMessage(msg, 'generate_funnel')
     setGenFunnelMode(false)
     setGenFunnelInput('')
