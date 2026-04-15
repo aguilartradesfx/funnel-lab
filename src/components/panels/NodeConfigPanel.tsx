@@ -584,6 +584,8 @@ function SourceForm({
                 { value: 'cpc', label: 'CPC — Costo por clic' },
                 { value: 'cpm', label: 'CPM — Costo por mil impresiones' },
                 { value: 'cpv', label: 'CPV — Costo por vista' },
+                { value: 'cpl', label: 'CPL — Costo por lead' },
+                { value: 'cpa', label: 'CPA — Costo por adquisición' },
               ]}
             />
           </FieldWrapper>
@@ -600,6 +602,15 @@ function SourceForm({
             <>
               <CurrencyField label="Costo por vista (CPV)" value={draft.cpv ?? 0} onChange={v => update({ cpv: v })} min={0.01} step={0.01} />
               <PercentField label="CTR (%)" value={draft.ctr ?? 0} onChange={v => update({ ctr: v })} min={0.1} max={20} step={0.1} />
+            </>
+          )}
+          {draft.costModel === 'cpl' && (
+            <CurrencyField label="Costo por lead (CPL)" value={draft.cpl ?? 0} onChange={v => update({ cpl: v })} min={0.01} step={0.01} tooltip="Visitantes = Presupuesto ÷ CPL" />
+          )}
+          {draft.costModel === 'cpa' && (
+            <>
+              <CurrencyField label="Costo por adquisición (CPA)" value={draft.cpa ?? 0} onChange={v => update({ cpa: v })} min={0.01} step={0.01} tooltip="Adquisiciones = Presupuesto ÷ CPA" />
+              <PercentField label="Tasa de conversión estimada" value={draft.conversionRate ?? 2} onChange={v => update({ conversionRate: v })} min={0.1} max={100} step={0.1} tooltip="Visitantes = (Presupuesto ÷ CPA) ÷ (Conversión / 100)" />
             </>
           )}
         </>
